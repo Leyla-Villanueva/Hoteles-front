@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HOTEL</title>
+
+    <link rel="manifest" href="./manifest.json" />
+    <link rel="stylesheet" href="./assets/css/bootstrap.min.css"/>
+    <link rel="icon" href="./assets/icons/icon-192.png" />
+
+    <style>
+    body {
+      font-family: "Segoe UI", sans-serif;
+      background: linear-gradient(135deg, #e9f5ec, #d0ead8);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+
+      background-image: url('https://images.unsplash.com/photo-1557683316-973673baf926?auto=format&fit=crop&w=1500&q=80');
+      background-size: cover;
+      background-position: center;
+      backdrop-filter: blur(4px);
+    }
+
+    .login-card {
+      width: 100%;
+      max-width: 420px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.92);
+      box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+      padding: 25px;
+      backdrop-filter: blur(6px);
+    }
+
+    .logo-circle {
+      width: 80px;
+      height: 80px;
+      background: #8bc9a3;
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: white;
+      font-size: 38px;
+      margin: 0 auto 15px;
+      box-shadow: inset 0 0 6px rgba(0,0,0,0.15);
+    }
+
+    .brand-title {
+      font-size: 1.6rem;
+      font-weight: 600;
+      color: #3b5d45;
+      letter-spacing: 1px;
+    }
+
+    label {
+      color: #4b6a55;
+    }
+
+    button {
+      border-radius: 12px !important;
+    }
+
+    input, select {
+      border-radius: 10px !important;
+    }
+
+    .login-card form {
+      margin-top: 10px;
+    }
+    </style>
+
+</head>
+<body>
+      <div class="login-card">
+    <div class="text-center">
+      <div class="logo-circle">
+        -
+      </div>
+      <p class="brand-title">Hotel</p>
+    </div>
+
+    <form id="loginForm" class="mt-4">
+
+      <div class="mb-3">
+        <label class="form-label">Usuario</label>
+        <input 
+          type="text" 
+          id="username" 
+          class="form-control" 
+          placeholder="Ingresa tu usuario"
+          required
+        />
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">Contraseña</label>
+        <input 
+          type="password" 
+          id="password" 
+          class="form-control" 
+          placeholder="Ingresa tu contraseña"
+          required
+        />
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">Rol</label>
+        <select id="role" class="form-select" required>
+          <option value="">Selecciona tu rol</option>
+          <option value="reception">Recepción</option>
+          <option value="maid">Camarera</option>
+        </select>
+      </div>
+
+      <button class="btn btn-success w-100 mt-3" type="submit">
+        Iniciar Sesión
+      </button>
+    </form>
+  </div>
+
+  <script src="./assets/js/bootstrap.bundle.min.js"></script>
+  <script src="./app.js"></script>
+</body>
+</html>
