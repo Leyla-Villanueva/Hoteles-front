@@ -9,9 +9,571 @@
     <link rel="stylesheet" href="./assets/css/bootstrap.min.css"/>
     <link rel="icon" href="./assets/icons/icon-192.png" />
 
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #e4e7e5 0%, #d8d4dc 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        h1 {
+            color: #000000;
+            font-size: 28px;
+        }
+
+        .stats {
+            display: flex;
+            gap: 20px;
+        }
+
+        .stat-card {
+            text-align: center;
+            padding: 10px 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .stat-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .controls {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 30px;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .search-box {
+            flex: 1;
+            min-width: 250px;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border 0.3s;
+        }
+
+        .search-box input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .filter-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        .filter-btn {
+            padding: 8px 16px;
+            border: 2px solid #e0e0e0;
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 13px;
+        }
+
+        .filter-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .rooms-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+        }
+
+        .room-card {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            transition: all 0.3s;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .room-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .room-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 5px;
+        }
+
+        .room-card.limpia::before { background: #10b981; }
+        .room-card.sucia::before { background: #ef4444; }
+        .room-card.ocupada::before { background: #3b82f6; }
+        .room-card.bloqueada::before { background: #6b7280; }
+
+        .room-number {
+            font-size: 32px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .room-status {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+
+        .status-limpia { background: #d1fae5; color: #065f46; }
+        .status-sucia { background: #fee2e2; color: #991b1b; }
+        .status-ocupada { background: #dbeafe; color: #1e40af; }
+        .status-bloqueada { background: #e5e7eb; color: #374151; }
+
+        .room-info {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 15px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .room-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-small {
+            flex: 1;
+            padding: 8px;
+            border: none;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-edit {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-edit:hover {
+            background: #5568d3;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-title {
+            font-size: 24px;
+            color: #333;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 28px;
+            cursor: pointer;
+            color: #999;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .alert.success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #10b981;
+        }
+
+        .alert.active {
+            display: block;
+        }
+
+        .incident-badge {
+            background: #fef3c7;
+            color: #92400e;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            display: inline-block;
+            margin-top: 8px;
+        }
+    </style>
+
 </head>
 <body>
     
+    <div class="container">
+        <header>
+            <h1>Sistema de Recepción</h1>
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="stat-number" id="totalRooms">0</div>
+                    <div class="stat-label">Total</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="cleanRooms">0</div>
+                    <div class="stat-label">Limpias</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="dirtyRooms">0</div>
+                    <div class="stat-label">Sucias</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="occupiedRooms">0</div>
+                    <div class="stat-label">Ocupadas</div>
+                </div>
+            </div>
+        </header>
+
+        <div class="controls">
+            <button class="btn btn-primary" onclick="openAddModal()">
+                ➕ Nueva Habitación
+            </button>
+            
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="🔍 Buscar habitación..." onkeyup="filterRooms()">
+            </div>
+
+            <div class="filter-group">
+                <button class="filter-btn active" data-filter="todas" onclick="setFilter('todas')">Todas</button>
+                <button class="filter-btn" data-filter="limpia" onclick="setFilter('limpia')">Limpias</button>
+                <button class="filter-btn" data-filter="sucia" onclick="setFilter('sucia')">Sucias</button>
+                <button class="filter-btn" data-filter="ocupada" onclick="setFilter('ocupada')">Ocupadas</button>
+                <button class="filter-btn" data-filter="bloqueada" onclick="setFilter('bloqueada')">Bloqueadas</button>
+            </div>
+        </div>
+
+        <div class="rooms-grid" id="roomsGrid"></div>
+    </div>
+
+    <div class="modal" id="roomModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title" id="modalTitle">Nueva Habitación</h2>
+                <button class="close-btn" onclick="closeModal()">×</button>
+            </div>
+            
+            <div class="alert success" id="alertMsg"></div>
+
+            <form id="roomForm" onsubmit="saveRoom(event)">
+                <div class="form-group">
+                    <label>Número de Habitación</label>
+                    <input type="text" id="roomNumber" required placeholder="Ej: 101">
+                </div>
+
+                <div class="form-group">
+                    <label>Tipo de Habitación</label>
+                    <select id="roomType" required>
+                        <option value="">Seleccionar...</option>
+                        <option value="Individual">Individual</option>
+                        <option value="Doble">Doble</option>
+                        <option value="Suite">Suite</option>
+                        <option value="Deluxe">Deluxe</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Piso</label>
+                    <input type="number" id="roomFloor" required placeholder="Ej: 1">
+                </div>
+
+                <div class="form-group">
+                    <label>Estado</label>
+                    <select id="roomStatus" required>
+                        <option value="limpia">Limpia</option>
+                        <option value="sucia">Sucia</option>
+                        <option value="ocupada">Ocupada</option>
+                        <option value="bloqueada">Bloqueada</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <button type="submit" class="btn btn-primary" style="width: 100%;">
+                        Guardar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        let rooms = [];
+        let currentFilter = 'todas';
+        let editingRoomId = null;
+
+        // Inicializar con datos de ejemplo
+        function initializeData() {
+            const savedRooms = localStorage.getItem('hotelRooms');
+            if (savedRooms) {
+                rooms = JSON.parse(savedRooms);
+            } else {
+                rooms = [
+                    { id: 1, number: '101', type: 'Individual', floor: 1, status: 'limpia' },
+                    { id: 2, number: '102', type: 'Doble', floor: 1, status: 'sucia' },
+                    { id: 3, number: '103', type: 'Suite', floor: 1, status: 'ocupada' },
+                    { id: 4, number: '201', type: 'Doble', floor: 2, status: 'limpia' },
+                    { id: 5, number: '202', type: 'Individual', floor: 2, status: 'bloqueada', incident: true }
+                ];
+                saveToStorage();
+            }
+            renderRooms();
+            updateStats();
+        }
+
+        function saveToStorage() {
+            localStorage.setItem('hotelRooms', JSON.stringify(rooms));
+        }
+
+        function renderRooms() {
+            const grid = document.getElementById('roomsGrid');
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            
+            let filteredRooms = rooms.filter(room => {
+                const matchesSearch = room.number.toLowerCase().includes(searchTerm) || 
+                                     room.type.toLowerCase().includes(searchTerm);
+                const matchesFilter = currentFilter === 'todas' || room.status === currentFilter;
+                return matchesSearch && matchesFilter;
+            });
+
+            grid.innerHTML = filteredRooms.map(room => `
+                <div class="room-card ${room.status}" onclick="openEditModal(${room.id})">
+                    <div class="room-number">${room.number}</div>
+                    <span class="room-status status-${room.status}">
+                        ${room.status.toUpperCase()}
+                    </span>
+                    <div class="room-info">
+                        <div>📋 Tipo: ${room.type}</div>
+                        <div>🏢 Piso: ${room.floor}</div>
+                        ${room.incident ? '<span class="incident-badge">⚠️ Con siniestro</span>' : ''}
+                    </div>
+                    <div class="room-actions">
+                        <button class="btn-small btn-edit" onclick="event.stopPropagation(); openEditModal(${room.id})">
+                            ✏️ Editar
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updateStats() {
+            document.getElementById('totalRooms').textContent = rooms.length;
+            document.getElementById('cleanRooms').textContent = rooms.filter(r => r.status === 'limpia').length;
+            document.getElementById('dirtyRooms').textContent = rooms.filter(r => r.status === 'sucia').length;
+            document.getElementById('occupiedRooms').textContent = rooms.filter(r => r.status === 'ocupada').length;
+        }
+
+        function openAddModal() {
+            editingRoomId = null;
+            document.getElementById('modalTitle').textContent = 'Nueva Habitación';
+            document.getElementById('roomForm').reset();
+            document.getElementById('roomModal').classList.add('active');
+        }
+
+        function openEditModal(id) {
+            editingRoomId = id;
+            const room = rooms.find(r => r.id === id);
+            
+            document.getElementById('modalTitle').textContent = 'Editar Habitación';
+            document.getElementById('roomNumber').value = room.number;
+            document.getElementById('roomType').value = room.type;
+            document.getElementById('roomFloor').value = room.floor;
+            document.getElementById('roomStatus').value = room.status;
+            
+            document.getElementById('roomModal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('roomModal').classList.remove('active');
+            document.getElementById('alertMsg').classList.remove('active');
+        }
+
+        function saveRoom(event) {
+            event.preventDefault();
+            
+            const roomData = {
+                number: document.getElementById('roomNumber').value,
+                type: document.getElementById('roomType').value,
+                floor: parseInt(document.getElementById('roomFloor').value),
+                status: document.getElementById('roomStatus').value
+            };
+
+            if (editingRoomId) {
+                const room = rooms.find(r => r.id === editingRoomId);
+                Object.assign(room, roomData);
+            } else {
+                roomData.id = Date.now();
+                rooms.push(roomData);
+            }
+
+            saveToStorage();
+            renderRooms();
+            updateStats();
+            
+            const alert = document.getElementById('alertMsg');
+            alert.textContent = editingRoomId ? 'Habitación actualizada correctamente' : 'Habitación creada correctamente';
+            alert.classList.add('active');
+            
+            setTimeout(() => {
+                closeModal();
+            }, 1500);
+        }
+
+        function setFilter(filter) {
+            currentFilter = filter;
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.dataset.filter === filter) {
+                    btn.classList.add('active');
+                }
+            });
+            renderRooms();
+        }
+
+        function filterRooms() {
+            renderRooms();
+        }
+
+        // Inicializar
+        initializeData();
+    </script>
 
     <script src="./assets/js/bootstrap.bundle.min.js"></script>
     <script src="./app.js"></script>
