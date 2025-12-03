@@ -59,7 +59,7 @@
         .stat-number {
             font-size: 24px;
             font-weight: bold;
-            color: #667eea;
+            color: #005A99;
         }
 
         .stat-label {
@@ -93,16 +93,18 @@
             gap: 8px;
         }
 
-        .btn-primary {
-            background: #667eea;
-            color: white;
-        }
+.btn-primary {
+    background: #005A99;
+    color: white;
+}
 
-        .btn-primary:hover {
-            background: #5568d3;
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
-        }
+
+.btn-primary:hover {
+    background: #011114;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 196, 230, 0.4);
+}
+
 
         .search-box {
             flex: 1;
@@ -120,7 +122,7 @@
 
         .search-box input:focus {
             outline: none;
-            border-color: #667eea;
+                border-color: #041619;
         }
 
         .filter-group {
@@ -139,9 +141,9 @@
         }
 
         .filter-btn.active {
-            background: #667eea;
+            background: #18375c;
             color: white;
-            border-color: #667eea;
+            border-color: #18375c;
         }
 
         .rooms-grid {
@@ -227,12 +229,12 @@
         }
 
         .btn-edit {
-            background: #667eea;
+            background: #18375c;
             color: white;
         }
 
         .btn-edit:hover {
-            background: #5568d3;
+            background: #0f2138;
         }
 
         .modal {
@@ -480,13 +482,13 @@
                         ${room.status.toUpperCase()}
                     </span>
                     <div class="room-info">
-                        <div>📋 Tipo: ${room.type}</div>
-                        <div>🏢 Piso: ${room.floor}</div>
+                        <div>Tipo: ${room.type}</div>
+                        <div>Piso: ${room.floor}</div>
                         ${room.incident ? '<span class="incident-badge">⚠️ Con siniestro</span>' : ''}
                     </div>
                     <div class="room-actions">
                         <button class="btn-small btn-edit" onclick="event.stopPropagation(); openEditModal(${room.id})">
-                            ✏️ Editar
+                            Editar
                         </button>
                     </div>
                 </div>

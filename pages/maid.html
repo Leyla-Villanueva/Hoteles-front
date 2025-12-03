@@ -648,8 +648,8 @@
                 <div class="room-body">
                     <div class="room-number">${room.number}</div>
                     <span class="room-status status-${room.status}">${statusText[room.status]}</span>
-                    <div class="room-info">🛏️ Tipo: ${room.type}</div>
-                    <div class="room-info">🏢 Piso: ${room.floor}</div>
+                    <div class="room-info">Tipo: ${room.type}</div>
+                    <div class="room-info">Piso: ${room.floor}</div>
                     ${siniestroHTML}
                     <button class="btn-edit" onclick='openRoomModal(${JSON.stringify(room)})'>
                         Editar

@@ -10,68 +10,90 @@
     <link rel="icon" href="./assets/icons/icon-192.png" />
 
     <style>
-    body {
-      font-family: "Segoe UI", sans-serif;
-      background: linear-gradient(135deg, #e9f5ec, #d0ead8);
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
+body {
+  font-family: "Segoe UI", sans-serif;
+  background: linear-gradient(135deg, #eef3f7, #d9e2ea);
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
 
-      background-image: url('https://images.unsplash.com/photo-1557683316-973673baf926?auto=format&fit=crop&w=1500&q=80');
-      background-size: cover;
-      background-position: center;
-      backdrop-filter: blur(4px);
-    }
+  /* Fondo elegante frío y profesional */
+  background-image: url('https://images.unsplash.com/photo-1557683316-973673baf926?auto=format&fit=crop&w=1500&q=80');
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
 
-    .login-card {
-      width: 100%;
-      max-width: 420px;
-      border-radius: 18px;
-      background: rgba(255, 255, 255, 0.732);
-      box-shadow: 0 8px 25px rgba(0,0,0,0.15);
-      padding: 25px;
-      backdrop-filter: blur(6px);
-    }
+  /* Glass effect más fino */
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
 
-    .logo-circle {
-      width: 80px;
-      height: 80px;
-      background: #8bc9a3;
-      border-radius: 50%;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      color: white;
-      font-size: 38px;
-      margin: 0 auto 15px;
-      box-shadow: inset 0 0 6px rgba(0,0,0,0.15);
-    }
+  /* Texto en azul gris */
+  color: #2e3a45;
+}
 
-    .brand-title {
-      font-size: 1.6rem;
-      font-weight: 600;
-      color: #3b5d45;
-      letter-spacing: 1px;
-    }
+.login-card {
+  width: 100%;
+  max-width: 420px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+  padding: 25px;
+  backdrop-filter: blur(6px);
+}
 
-    label {
-      color: #4b6a55;
-    }
+/* Color del logo — ahora azul gris elegante */
+.logo-circle {
+  width: 80px;
+  height: 80px;
+  background: #5e7c9a; /* azul gris elegante */
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: white;
+  font-size: 38px;
+  margin: 0 auto 15px;
+  box-shadow: inset 0 0 6px rgba(0,0,0,0.15);
+}
 
-    button {
-      border-radius: 12px !important;
-    }
+/* Título con un azul gris oscuro */
+.brand-title {
+  font-size: 1.6rem;
+  font-weight: 600;
+  color: #3a4a59;
+  letter-spacing: 1px;
+}
 
-    input, select {
-      border-radius: 10px !important;
-    }
+/* Etiquetas */
+label {
+  color: #435766;
+}
 
-    .login-card form {
-      margin-top: 10px;
-    }
-    </style>
+/* Inputs y selects */
+input, select {
+  border-radius: 10px !important;
+  border: 1px solid #b6c4ce;
+}
+
+/* Botón elegante */
+button {
+  border-radius: 12px !important;
+  background: #5e7c9a;
+  border: none;
+  color: white;
+}
+
+button:hover {
+  background: #4a657e;
+}
+
+.login-card form {
+  margin-top: 10px;
+}
+</style>
+
 
 </head>
 <body>
