@@ -1,149 +1,110 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HOTEL</title>
+    <title>HOTEL - Acceso al Sistema</title>
 
     <link rel="manifest" href="./manifest.json" />
-    <link rel="stylesheet" href="./assets/css/bootstrap.min.css"/>
+    
     <link rel="icon" href="./assets/icons/icon-192.png" />
-
-    <style>
-body {
-  font-family: "Segoe UI", sans-serif;
-  background: linear-gradient(135deg, #eef3f7, #d9e2ea);
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-
-  /* Fondo elegante frío y profesional */
-  background-image: url('https://images.unsplash.com/photo-1557683316-973673baf926?auto=format&fit=crop&w=1500&q=80');
-  background-size: cover;
-  background-position: center;
-  background-attachment: fixed;
-
-  /* Glass effect más fino */
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-
-  /* Texto en azul gris */
-  color: #2e3a45;
-}
-
-.login-card {
-  width: 100%;
-  max-width: 420px;
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.78);
-  box-shadow: 0 8px 25px rgba(0,0,0,0.15);
-  padding: 25px;
-  backdrop-filter: blur(6px);
-}
-
-/* Color del logo — ahora azul gris elegante */
-.logo-circle {
-  width: 80px;
-  height: 80px;
-  background: #5e7c9a; /* azul gris elegante */
-  border-radius: 50%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  color: white;
-  font-size: 38px;
-  margin: 0 auto 15px;
-  box-shadow: inset 0 0 6px rgba(0,0,0,0.15);
-}
-
-/* Título con un azul gris oscuro */
-.brand-title {
-  font-size: 1.6rem;
-  font-weight: 600;
-  color: #3a4a59;
-  letter-spacing: 1px;
-}
-
-/* Etiquetas */
-label {
-  color: #435766;
-}
-
-/* Inputs y selects */
-input, select {
-  border-radius: 10px !important;
-  border: 1px solid #b6c4ce;
-}
-
-/* Botón elegante */
-button {
-  border-radius: 12px !important;
-  background: #5e7c9a;
-  border: none;
-  color: white;
-}
-
-button:hover {
-  background: #4a657e;
-}
-
-.login-card form {
-  margin-top: 10px;
-}
-</style>
-
+    <link rel="stylesheet" href="./assets/css/styles.css">
 
 </head>
 <body>
-      <div class="login-card">
-    <div class="text-center">
-      <div class="logo-circle">
-        -
+  <div class="login-container">
+    <div class="login-card">
+      <div class="logo-section">
+        <div class="logo-emblem">
+          <span class="logo-text">H</span>
+        </div>
+        <h1 class="brand-title">Hotel</h1>
+        <p class="brand-subtitle">Sistema de Gestión</p>
       </div>
-      <p class="brand-title">Hotel</p>
+
+      <form id="loginForm" class="form-section">
+        <div class="input-group">
+          <label class="form-label">Usuario</label>
+          <input 
+            type="text" 
+            id="username" 
+            class="form-input" 
+            placeholder="Nombre de usuario"
+            required
+            autocomplete="username"
+          />
+        </div>
+
+        <div class="input-group">
+          <label class="form-label">Contraseña</label>
+          <input 
+            type="password" 
+            id="password" 
+            class="form-input" 
+            placeholder="Contraseña de acceso"
+            required
+            autocomplete="current-password"
+            minlength="4"
+          />
+        </div>
+
+        <div class="input-group">
+          <label class="form-label">Departamento</label>
+          <select id="role" class="form-input" required>
+            <option value="">Seleccione un departamento</option>
+            <option value="reception">Recepción</option>
+            <option value="maid">Servicio de Habitaciones</option>
+          </select>
+        </div>
+
+        <button class="btn-login" type="submit">
+          Iniciar Sesión
+        </button>
+
+      </form>
+
+      <div class="footer-text">
+        <small>AWP</small>
+      </div>
     </div>
-
-    <form id="loginForm" class="mt-4">
-
-      <div class="mb-3">
-        <label class="form-label">Usuario</label>
-        <input 
-          type="text" 
-          id="username" 
-          class="form-control" 
-          placeholder="Ingresa tu usuario"
-          required
-        />
-      </div>
-
-      <div class="mb-3">
-        <label class="form-label">Contraseña</label>
-        <input 
-          type="password" 
-          id="password" 
-          class="form-control" 
-          placeholder="Ingresa tu contraseña"
-          required
-        />
-      </div>
-
-      <div class="mb-3">
-        <label class="form-label">Rol</label>
-        <select id="role" class="form-select" required>
-          <option value="">Selecciona tu rol</option>
-          <option value="reception">Recepción</option>
-          <option value="maid">Camarera</option>
-        </select>
-      </div>
-
-      <button class="btn btn-success w-100 mt-3" type="submit">
-        Iniciar Sesión
-      </button>
-    </form>
   </div>
 
+  <script>
+    document.getElementById('loginForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      
+      const btn = this.querySelector('.btn-login');
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value;
+      const role = document.getElementById('role').value;
+      
+
+      if (!username || !password || !role) {
+        alert('Por favor complete todos los campos');
+        return;
+      }
+      
+      // Agregar estado de carga
+      btn.classList.add('loading');
+      const originalText = btn.textContent;
+      
+      setTimeout(() => {
+        console.log('Intento de inicio de sesión:', { username, role });
+        
+        btn.classList.remove('loading');
+        
+        alert('Autenticación exitosa (demo)');
+        
+      }, 1800);
+    });
+
+    window.addEventListener('error', function() {
+      const btn = document.querySelector('.btn-login');
+      if (btn) {
+        btn.classList.remove('loading');
+      }
+    });
+  </script>
   <script src="./assets/js/bootstrap.bundle.min.js"></script>
   <script src="./app.js"></script>
 </body>
