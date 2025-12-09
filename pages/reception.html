@@ -306,8 +306,10 @@
         }
 
         function logout() {
-            currentUser = null;
-            localStorage.removeItem('currentUser');
+            sessionStorage.removeItem('role');
+            sessionStorage.removeItem('token');
+            sessionStorage.removeItem('username');
+            sessionStorage.removeItem('uuid');
             updateNavbar();
             alert('Sesión cerrada.');
             window.location.href = '../index.html';

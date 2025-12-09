@@ -628,6 +628,10 @@
         }
 
         function logout() {
+            sessionStorage.removeItem('role');
+            sessionStorage.removeItem('token');
+            sessionStorage.removeItem('username');
+            sessionStorage.removeItem('uuid');
             alert('Sesión cerrada.');
             window.location.href = '../index.html';
         }
