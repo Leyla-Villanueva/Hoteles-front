@@ -7,6 +7,7 @@ const ASSETS = [
     "./assets/css/bootstrap.min.css",
     "./assets/css/styles.css",
     "./assets/js/bootstrap.bundle.min.js",
+    "./assets/js/auth.controller.js",
     "./assets/icons/icon-192.png",
     "./assets/icons/icon-512.png",
     "./pages/maid.html",
