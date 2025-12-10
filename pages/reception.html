@@ -100,7 +100,7 @@
     </style>
 </head>
 <body>
-
+    
     <nav class="navbar navbar-expand-lg navbar-dark fixed-top" style="background-color: var(--primary-color);">
         <div class="container-fluid container">
             <a class="navbar-brand fw-bold" href="#">
@@ -158,6 +158,12 @@
             <button class="btn btn-outline-secondary d-flex align-items-center" onclick="openUserModal()">
                 <i class="bi bi-person-add me-1"></i> Registrar Usuario
             </button>
+
+            <button class="btn btn-outline-warning d-flex align-items-center" 
+            data-bs-toggle="modal" data-bs-target="#reportsModal">
+                <i class="bi bi-exclamation-triangle-fill me-1"></i> Ver Reportes
+            </button>
+
             <div class="search-box flex-grow-1" style="min-width: 200px;">
                 <input type="text" id="searchInput" class="form-control" placeholder="Buscar habitación..." onkeyup="filterRooms()">
             </div>
@@ -226,48 +232,142 @@
             </div>
         </div>
     </div>
+
     <div class="modal fade" id="userModal" tabindex="-1" aria-labelledby="userModalTitle" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="userModalTitle"><i class="bi bi-person-fill-gear me-1"></i> Registrar Nuevo Usuario</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                
-                <div class="modal-body">
-                    <div class="alert alert-info" id="userAlertMsg">Campos requeridos: username, email, password, role.</div>
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="userModalTitle">
+                    <i class="bi bi-person-fill-gear me-1"></i> Registrar Nuevo Usuario
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            
+            <div class="modal-body">
 
-                    <form id="userForm" onsubmit="registerUser(event)">
-                        <div class="mb-3">
-                            <label for="userName" class="form-label fw-bold">Nombre de Usuario (username)</label>
-                            <input type="text" id="userName" class="form-control" required placeholder="Ej: ana.camarera">
-                        </div>
-                        <div class="mb-3">
-                            <label for="userEmail" class="form-label fw-bold">Email</label>
-                            <input type="email" id="userEmail" class="form-control" required placeholder="Ej: ana@hotel.com">
-                        </div>
-                        <div class="mb-3">
-                            <label for="userPassword" class="form-label fw-bold">Contraseña</label>
-                            <input type="password" id="userPassword" class="form-control" required>
-                        </div>
-                        <div class="mb-4">
-                            <label for="userRole" class="form-label fw-bold">Rol</label>
-                            <select id="userRole" class="form-select" required>
-                                <option value="">Seleccionar...</option>
-                                <option value="RECEPCIONISTA">RECEPCIONISTA</option>
-                                <option value="CAMARERA">CAMARERA</option>
-                                <option value="GERENTE">GERENTE</option>
-                            </select>
-                        </div>
+                <form id="userForm" onsubmit="registerUser(event)">
+                    
+                    <div class="mb-3">
+                        <label for="userName" class="form-label fw-bold">Nombre de Usuario</label>
+                        <input type="text" id="userName" class="form-control" required placeholder="Ej: ana.camarera">
+                    </div>
 
-                        <button type="submit" class="btn btn-primary w-100">
-                            <i class="bi bi-save me-1"></i> Confirmar Registro
-                        </button>
-                    </form>
-                </div>
+                    <div class="mb-3">
+                        <label for="userEmail" class="form-label fw-bold">Email</label>
+                        <input type="email" id="userEmail" class="form-control" required placeholder="Ej: ana@hotel.com">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="userPassword" class="form-label fw-bold">Contraseña</label>
+                        <input type="password" id="userPassword" class="form-control" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="userRole" class="form-label fw-bold">Rol</label>
+                        <select id="userRole" class="form-select" required>
+                            <option value="">Seleccionar...</option>
+                            <option value="RECEPCIONISTA">RECEPCIONISTA</option>
+                            <option value="CAMARERA">CAMARERA</option>
+                            <option value="GERENTE">GERENTE</option>
+                        </select>
+                    </div>
+
+                    <!-- Aquí aparece el select si es CAMARERA -->
+                     <!-- Porque tampoco se porque hay gerente wtf-->
+                    <div class="mb-3 d-none" id="roomAssignContainer">
+                        <label for="assignRoomToUser" class="form-label fw-bold">Asignar Habitación</label>
+                        <select id="assignRoomToUser" class="form-select">
+                            <option value="">Seleccionar habitación...</option>
+                        </select>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-save me-1"></i> Confirmar Registro
+                    </button>
+                </form>
             </div>
         </div>
     </div>
+</div>
+
+
+<div class="modal fade" id="assignModal" tabindex="-1" aria-labelledby="assignModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="assignModalTitle">
+                    <i class="bi bi-person-check-fill me-1"></i> Asignar Camarera
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+
+            <div class="modal-body">
+                <div class="alert alert-success d-none" id="assignAlertMsg"></div>
+
+                <form id="assignForm" onsubmit="assignChambermaid(event)">
+                    <input type="hidden" id="assignRoomId">
+
+                    <div class="mb-3">
+                        <label class="fw-bold">Habitación</label>
+                        <input type="text" id="assignRoomNumber" class="form-control" readonly>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="fw-bold">Camarera</label>
+                        <select id="camareraSelect" class="form-select" required>
+                            <!-- Se llena dinámicamente -->
+                        </select>
+                    </div>
+
+                    <button class="btn btn-primary w-100">
+                        <i class="bi bi-check2-circle me-1"></i> Confirmar Asignación
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="reportsModal" tabindex="-1" aria-labelledby="reportsModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header bg-warning text-dark">
+        <h5 class="modal-title" id="reportsModalLabel">
+          <i class="bi bi-exclamation-triangle-fill me-1"></i> Reportes de Siniestros
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+
+        <!-- Tarjeta de ejemplo 1 -->
+        <div class="card shadow-sm mb-3">
+          <div class="card-body">
+            <h5 class="card-title fw-bold">Fuga de Agua</h5>
+            <p class="card-text mb-1"><strong>Descripción:</strong> Humedad en la pared cerca del baño.</p>
+            <p class="card-text mb-1"><strong>Camarera:</strong> María Pérez</p>
+            <p class="card-text"><strong>Habitación:</strong> 203</p>
+            <img src="https://via.placeholder.com/400x250" class="img-fluid rounded border" alt="Foto del reporte">
+          </div>
+        </div>
+        <!-- Tarjeta de ejemplo 2 -->
+        <div class="card shadow-sm mb-3">
+          <div class="card-body">
+            <h5 class="card-title fw-bold">Cristal roto</h5>
+            <p class="card-text mb-1"><strong>Descripción:</strong> Ventana con un golpe en la esquina.</p>
+            <p class="card-text mb-1"><strong>Camarera:</strong> Alejandra Gómez</p>
+            <p class="card-text"><strong>Habitación:</strong> 115</p>
+            <img src="https://via.placeholder.com/400x250" class="img-fluid rounded border" alt="Foto del reporte">
+          </div>
+        </div>
+      </div>
+      <!-- Footer -->
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+      </div>
+
+    </div>
+  </div>
+</div>
 
     <script src="../assets/js/bootstrap.bundle.min.js"></script>
     <script src="../app.js"></script>
