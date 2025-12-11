@@ -134,7 +134,9 @@ function closeQRScanner() {
 async function loadRoomByQR(roomId) {
     try {
         const headers = {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'ngrok-skip-browser-warning': 'true'
+
         };
         
         if (authToken) {
@@ -214,7 +216,8 @@ async function markCleanFromQR() {
 
     try {
         const headers = {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'ngrok-skip-browser-warning': 'true'
         };
         
         if (authToken) {
@@ -322,7 +325,8 @@ function reportSiniestroFromQR() {
 async function loadRooms() {
     try {
         const headers = {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'ngrok-skip-browser-warning': 'true'
         };
         
         if (authToken) {
@@ -357,7 +361,8 @@ async function loadRooms() {
 async function loadAsignaciones() {
     try {
         const headers = {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'ngrok-skip-browser-warning': 'true'
         };
         
         if (authToken) {
@@ -392,7 +397,8 @@ async function markClean() {
 
     try {
         const headers = {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'ngrok-skip-browser-warning': 'true'
         };
         
         if (authToken) {
@@ -493,7 +499,8 @@ async function submitSiniestro() {
         };
 
         const headers = {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'ngrok-skip-browser-warning': 'true'
         };
         
         if (authToken) {
