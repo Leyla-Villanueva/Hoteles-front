@@ -444,6 +444,13 @@
             </div>
         </div>
     </div>
+    <script>
+        window.addEventListener("online", () => {
+    console.log("🌐 Volvimos online → recargando habitaciones");
+    loadRooms();
+});
+
+    </script>
 
     <script src="../assets/js/bootstrap.bundle.min.js"></script>
     <!-- Librería para escanear QR -->

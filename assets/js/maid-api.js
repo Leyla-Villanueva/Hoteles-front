@@ -239,7 +239,31 @@ async function markCleanFromQR() {
         await loadRooms();
     } catch (error) {
         console.error('Error:', error);
-        window.alert('Error al marcar la habitación como limpia');
+
+        // Si está offline, guardar la petición en la DB cliente y actualizar UI
+        try {
+            await savePendingRequestClient({
+                url: `${API_URL}/habitaciones/marcar-limpia/${scannedRoomFromQR.id}`,
+                method: 'PUT',
+                body: null,
+                meta: { roomNumber: scannedRoomFromQR.numero }
+            });
+
+            showNotification(`⚠ No hay conexión. El cambio se guardó localmente y se sincronizará al volver a estar en línea.`, 'warning');
+            // Actualiza UI localmente
+            scannedRoomFromQR.estado = 'limpia';
+            await loadRooms();
+
+            // Registrar Background Sync si está disponible
+            if ('serviceWorker' in navigator && 'SyncManager' in window) {
+                navigator.serviceWorker.ready.then(reg => {
+                    reg.sync.register("sync-pending-requests").catch(() => {});
+                });
+            }
+        } catch (e) {
+            console.error('No se pudo guardar petición offline desde QR:', e);
+            window.alert('Error al marcar la habitación como limpia');
+        }
     }
 }
 
@@ -381,6 +405,21 @@ async function markClean() {
 
         const data = await response.json();
 
+        // Si estamos offline, el SW devolverá { offline: true }
+        if (data.offline) {
+            showNotification(
+                `⚠ Estás sin conexión. El estado de la habitación ${selectedRoom.numero} se sincronizará cuando regreses a internet.`,
+                'warning'
+            );
+
+            // Cambiar el estado en la UI directamente
+            selectedRoom.estado = 'limpia';
+            renderRooms();
+            closeModal();
+            return;
+        }
+
+        // Normal cuando sí hay red
         if (data.error) {
             window.alert(data.message);
             return;
@@ -389,11 +428,45 @@ async function markClean() {
         showNotification(`✓ Habitación ${selectedRoom.numero} marcada como limpia`, 'success');
         closeModal();
         await loadRooms();
+
     } catch (error) {
-        console.error('Error:', error);
-        window.alert('Error al marcar la habitación como limpia');
+        // Sin internet → el fetch revienta → caemos aquí
+        console.error('Error OFFLINE:', error);
+        // Guardar la petición en IndexedDB desde la página (cliente) para reenviar con token fresco
+        try {
+            await savePendingRequestClient({
+                url: `${API_URL}/habitaciones/marcar-limpia/${selectedRoom.id}`,
+                method: 'PUT',
+                body: null,
+                meta: { roomNumber: selectedRoom.numero }
+            });
+
+            showNotification(
+                `⚠ No hay conexión. El cambio se guardó localmente y se sincronizará al volver a estar en línea.`,
+                'warning'
+            );
+
+            // Actualiza la UI localmente para que el usuario vea el cambio
+            selectedRoom.estado = 'limpia';
+            renderRooms();
+            closeModal();
+
+            // Intentar registrar Background Sync y también ejecutar reenvío desde cliente al volver online
+            if ('serviceWorker' in navigator && 'SyncManager' in window) {
+                navigator.serviceWorker.ready.then(reg => {
+                    reg.sync.register("sync-pending-requests")
+                        .then(() => console.log("🔄 Background Sync registrado"))
+                        .catch(err => console.warn("⚠ No se pudo registrar Sync", err));
+                });
+            }
+
+        } catch (e) {
+            console.error('No se pudo guardar petición offline en IDB:', e);
+            showNotification('⚠ No hay conexión y no se pudo guardar el cambio localmente', 'danger');
+        }
     }
 }
+
 
 // ==================== REPORTES - API ====================
 async function submitSiniestro() {
@@ -708,3 +781,138 @@ if (document.readyState === 'loading') {
 } else {
     initialize();
 }
+
+// Escuchar mensajes desde el Service Worker para detectar cuando se reenviaron peticiones
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.addEventListener('message', event => {
+        const data = event.data;
+        if (!data) return;
+
+        if (data.type === 'requests-synced') {
+            const success = data.success || 0;
+            const failures = data.failures || 0;
+            showNotification(`✓ ${success} cambios sincronizados${failures ? ' (' + failures + ' fallidos)' : ''}`, 'success');
+            // Refrescar datos para que las cards muestren el estado real del servidor
+            loadRooms();
+        }
+    });
+}
+
+// Fallback para browsers sin Background Sync: al volver online pedir al SW que sincronice
+window.addEventListener('online', () => {
+    if (!('serviceWorker' in navigator)) return;
+
+    navigator.serviceWorker.ready.then(reg => {
+        if ('sync' in reg) {
+            // Registrar sync (si no está registrado ya)
+            reg.sync.register('sync-pending-requests').catch(() => {});
+        } else if (navigator.serviceWorker.controller) {
+            // Enviar mensaje al SW para que ejecute el reenvío
+            navigator.serviceWorker.controller.postMessage({ type: 'sync' });
+        }
+    }).catch(() => {});
+});
+
+// ---------------------------
+// IndexedDB helpers (cliente)
+// ---------------------------
+function openClientDB() {
+    return new Promise((resolve, reject) => {
+        const req = indexedDB.open('hotel-pwa-db', 1);
+        req.onupgradeneeded = (e) => {
+            const db = e.target.result;
+            if (!db.objectStoreNames.contains('pending-requests')) {
+                db.createObjectStore('pending-requests', { keyPath: 'id', autoIncrement: true });
+            }
+        };
+        req.onsuccess = (e) => resolve(e.target.result);
+        req.onerror = (e) => reject(e.target.error);
+    });
+}
+
+function savePendingRequestClient(obj) {
+    return openClientDB().then(db => new Promise((res, rej) => {
+        const tx = db.transaction('pending-requests', 'readwrite');
+        const store = tx.objectStore('pending-requests');
+        store.add(Object.assign({ createdAt: Date.now() }, obj));
+        tx.oncomplete = () => { db.close(); res(); };
+        tx.onerror = (e) => { db.close(); rej(e); };
+    }));
+}
+
+function getAllPendingClient() {
+    return openClientDB().then(db => new Promise((res, rej) => {
+        const tx = db.transaction('pending-requests', 'readonly');
+        const store = tx.objectStore('pending-requests');
+        const req = store.getAll();
+        req.onsuccess = () => { db.close(); res(req.result || []); };
+        req.onerror = (e) => { db.close(); rej(e); };
+    }));
+}
+
+function deletePendingClientById(id) {
+    return openClientDB().then(db => new Promise((res, rej) => {
+        const tx = db.transaction('pending-requests', 'readwrite');
+        const store = tx.objectStore('pending-requests');
+        store.delete(id);
+        tx.oncomplete = () => { db.close(); res(); };
+        tx.onerror = (e) => { db.close(); rej(e); };
+    }));
+}
+
+// Reenviar peticiones pendientes desde la página (usa token actual)
+async function sendPendingRequestsFromClient() {
+    try {
+        const items = await getAllPendingClient();
+        if (!items.length) return;
+
+        let success = 0;
+        let failures = 0;
+
+        for (const req of items) {
+            try {
+                const headers = { 'Content-Type': 'application/json' };
+                if (sessionStorage.getItem('token')) {
+                    headers['Authorization'] = `Bearer ${sessionStorage.getItem('token')}`;
+                }
+
+                const options = { method: req.method, headers };
+                if (req.body) options.body = JSON.stringify(req.body);
+
+                const resp = await fetch(req.url, options);
+                const json = await resp.json().catch(() => null);
+
+                if (resp.ok && (!json || !json.error)) {
+                    await deletePendingClientById(req.id);
+                    success++;
+                } else {
+                    failures++;
+                }
+            } catch (e) {
+                console.warn('Fallo al reenviar petición desde cliente:', e);
+                failures++;
+            }
+        }
+
+        if (success) {
+            showNotification(`✓ ${success} cambios sincronizados`, 'success');
+            await loadRooms();
+        }
+
+        // Notificar al SW también (por si el SW quiere actualizar su cola)
+        if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+            navigator.serviceWorker.controller.postMessage({ type: 'client-synced', success, failures });
+        }
+
+    } catch (e) {
+        console.error('Error al enviar pendientes desde cliente:', e);
+    }
+}
+
+// Llamar al reenvío cuando volvemos online
+window.addEventListener('online', () => {
+    sendPendingRequestsFromClient();
+});
+
+// Intentar enviar pendientes al cargar la página si hay conexión
+if (navigator.onLine) sendPendingRequestsFromClient();
