@@ -300,61 +300,65 @@
       </div>
     </div>
 
-    <!-- Modal: Registrar Usuario -->
-    <div class="modal fade" id="userModal" tabindex="-1">
-      <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title">
-              <i class="bi bi-person-fill-gear me-1"></i> Registrar Nuevo
-              Usuario
-            </h5>
-            <button
-              type="button"
-              class="btn-close"
-              data-bs-dismiss="modal"
-            ></button>
+   <!-- Modal: Registrar Usuario -->
+<div class="modal fade" id="userModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="bi bi-person-fill-gear me-1"></i> Registrar Nuevo
+          Usuario
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="userForm" onsubmit="registerUser(event)">
+          <div class="mb-3">
+            <label for="userName" class="form-label fw-bold">Nombre de Usuario</label>
+            <input
+              type="text"
+              id="userName"
+              class="form-control"
+              required
+              placeholder="Ej: ana.camarera"
+            />
           </div>
-          <div class="modal-body">
-            <form id="userForm" onsubmit="registerUser(event)">
-              <div class="mb-3">
-                <label for="userName" class="form-label fw-bold"
-                  >Nombre de Usuario</label
-                >
-                <input
-                  type="text"
-                  id="userName"
-                  class="form-control"
-                  required
-                  placeholder="Ej: ana.camarera"
-                />
-              </div>
-              <div class="mb-3">
-                <label for="userEmail" class="form-label fw-bold">Email</label>
-                <input
-                  type="email"
-                  id="userEmail"
-                  class="form-control"
-                  required
-                  placeholder="Ej: ana@hotel.com"
-                />
-              </div>
-              <div class="mb-4">
-                <label for="userRole" class="form-label fw-bold">Rol</label>
-                <select id="userRole" class="form-select" required>
-                  <option value="">Seleccionar...</option>
-                  <option value="RECEPCION">RECEPCION</option>
-                  <option value="CAMARERA">CAMARERA</option>
-                </select>
-              </div>
-              <button type="submit" class="btn btn-primary w-100">
-                <i class="bi bi-save me-1"></i> Confirmar Registro
-              </button>
-            </form>
+          <div class="mb-3">
+            <label for="userEmail" class="form-label fw-bold">Email</label>
+            <input
+              type="email"
+              id="userEmail"
+              class="form-control"
+              required
+              placeholder="Ej: ana@hotel.com"
+            />
           </div>
-        </div>
+          <div class="mb-3">
+            <label for="userPassword" class="form-label fw-bold">Contraseña</label>
+            <input
+              type="password"
+              id="userPassword"
+              class="form-control"
+              required
+              placeholder="Ingrese su contraseña"
+            />
+          </div>
+          <div class="mb-4">
+            <label for="userRole" class="form-label fw-bold">Rol</label>
+            <select id="userRole" class="form-select" required>
+              <option value="">Seleccionar...</option>
+              <option value="RECEPCION">RECEPCION</option>
+              <option value="CAMARERA">CAMARERA</option>
+            </select>
+          </div>
+          <button type="submit" class="btn btn-primary w-100">
+            <i class="bi bi-save me-1"></i> Confirmar Registro
+          </button>
+        </form>
       </div>
     </div>
+  </div>
+</div>
 
     <!-- Modal: Asignar Camarera -->
     <div class="modal fade" id="assignModal" tabindex="-1">

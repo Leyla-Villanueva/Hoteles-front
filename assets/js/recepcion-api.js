@@ -562,22 +562,40 @@ function logout() {
 }
 
 // ==================== HABITACIONES - API ====================
-async function loadRooms() {
+async function fetchWithCache(url, options = {}, cacheKey = url) {
     try {
-        const headers = {
-            'Content-Type': 'application/json'
-        };
-        
-        if (authToken) {
-            headers['Authorization'] = `Bearer ${authToken}`;
+        const response = await fetch(url, options);
+        if (!response.ok) throw new Error('Error en la red');
+
+        const clonedResponse = response.clone();
+        const data = await response.json();
+
+        // Guardar en cache
+        if ('caches' in window) {
+            const cache = await caches.open('hotel-cache-v1');
+            await cache.put(cacheKey, new Response(JSON.stringify(data)));
         }
 
-        const response = await fetch(`${API_URL}/habitaciones`, {
-            method: 'GET',
-            headers: headers
-        });
-        
-        const data = await response.json();
+        return data;
+    } catch (error) {
+        console.warn('Red fallida, intentando cache...', error);
+        if ('caches' in window) {
+            const cache = await caches.open('hotel-cache-v1');
+            const cachedResponse = await cache.match(cacheKey);
+            if (cachedResponse) {
+                return cachedResponse.json();
+            }
+        }
+        throw error; // si no hay cache, lanza el error
+    }
+}
+
+async function loadRooms() {
+    try {
+        const headers = { 'Content-Type': 'application/json' };
+        if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
+
+        const data = await fetchWithCache(`${API_URL}/habitaciones`, { headers });
 
         if (data.error) {
             console.error('Error al cargar habitaciones:', data.message);
@@ -585,34 +603,23 @@ async function loadRooms() {
         }
 
         rooms = data.data || [];
-        
-        // Cargar asignaciones para cada habitación
-        await loadAllAsignaciones();
-        
+
+        await loadAllAsignaciones(); // Cargar asignaciones
+
         renderRooms();
         updateStats();
     } catch (error) {
-        console.error('Error de conexión:', error);
-        window.alert('Error al conectar con el servidor');
+        console.error('Error de conexión o cache:', error);
+        window.alert('No se pudieron cargar habitaciones (offline o error de red)');
     }
 }
 
 async function loadAllAsignaciones() {
     try {
-        const headers = {
-            'Content-Type': 'application/json'
-        };
-        
-        if (authToken) {
-            headers['Authorization'] = `Bearer ${authToken}`;
-        }
+        const headers = { 'Content-Type': 'application/json' };
+        if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
 
-        const response = await fetch(`${API_URL}/asignaciones/activas`, {
-            method: 'GET',
-            headers: headers
-        });
-        
-        const data = await response.json();
+        const data = await fetchWithCache(`${API_URL}/asignaciones/activas`, { headers });
 
         if (data.error) {
             console.error('Error al cargar asignaciones:', data.message);
@@ -620,8 +627,7 @@ async function loadAllAsignaciones() {
         }
 
         const asignaciones = data.data || [];
-        
-        // Agregar info de asignación a cada habitación
+
         rooms.forEach(room => {
             const asignacion = asignaciones.find(a => a.habitacionId === room.id);
             if (asignacion) {
@@ -632,9 +638,119 @@ async function loadAllAsignaciones() {
                 room.camareraAsignada = null;
             }
         });
-        
+
     } catch (error) {
         console.error('Error al cargar asignaciones:', error);
+    }
+}
+
+async function saveRoom(event) {
+    event.preventDefault();
+
+    const roomData = {
+        numero: document.getElementById('roomNumber').value.trim(),
+        estado: document.getElementById('roomStatus').value.toUpperCase()
+    };
+
+    const payload = editingRoomId ? { id: editingRoomId, estado: roomData.estado } : roomData;
+
+    const method = editingRoomId ? 'PUT' : 'POST';
+    const url = editingRoomId ? `${API_URL}/habitaciones/estado` : `${API_URL}/habitaciones`;
+
+    try {
+        const headers = { 'Content-Type': 'application/json' };
+        if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
+
+        // Intentar enviar a la red
+        const response = await fetch(url, { method, headers, body: JSON.stringify(payload) });
+
+        if (!response.ok) throw new Error('Error en la red');
+
+        const data = await response.json();
+
+        const alertElement = document.getElementById('alertMsg');
+        alertElement.textContent = editingRoomId ? 'Habitación actualizada correctamente' : 'Habitación creada correctamente';
+        alertElement.classList.remove('d-none');
+        alertElement.classList.add('d-block');
+
+        await loadRooms();
+
+        setTimeout(() => closeModal(), 1500);
+
+    } catch (error) {
+        console.warn('No hay red, guardando cambios localmente...', error);
+
+        // Guardar en cache para sincronizar luego
+        if ('localStorage' in window) {
+            const pending = JSON.parse(localStorage.getItem('pendingRooms')) || [];
+            pending.push({ url, method, payload, timestamp: Date.now() });
+            localStorage.setItem('pendingRooms', JSON.stringify(pending));
+
+            window.alert('Estás offline. Los cambios se guardarán y se sincronizarán cuando vuelva la red.');
+            await loadRooms();
+            setTimeout(() => closeModal(), 1500);
+        } else {
+            window.alert('Error al guardar habitación offline');
+        }
+    }
+}
+
+async function syncPendingRooms() {
+    if (!navigator.onLine) return;
+
+    const pending = JSON.parse(localStorage.getItem('pendingRooms')) || [];
+    if (pending.length === 0) return;
+
+    for (const item of pending) {
+        try {
+            const headers = { 'Content-Type': 'application/json' };
+            if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
+
+            await fetch(item.url, {
+                method: item.method,
+                headers,
+                body: JSON.stringify(item.payload)
+            });
+        } catch (err) {
+            console.error('Error al sincronizar habitación:', err);
+        }
+    }
+
+    localStorage.removeItem('pendingRooms');
+    await loadRooms();
+}
+
+// Detectar reconexión a internet
+window.addEventListener('online', syncPendingRooms);
+
+
+async function deleteRoom(id) {
+    if (!window.confirm('¿Está seguro de eliminar esta habitación?')) return;
+
+    try {
+        const headers = { 'Content-Type': 'application/json' };
+        if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
+
+        const response = await fetch(`${API_URL}/habitaciones/${id}`, { method: 'DELETE', headers });
+        const data = await response.json();
+
+        if (data.error) {
+            window.alert(data.message);
+            return;
+        }
+
+        window.alert('Habitación eliminada correctamente');
+        await loadRooms();
+
+    } catch (error) {
+        console.warn('No hay red, eliminando localmente...');
+        // Guardar en pending para eliminar luego
+        const pending = JSON.parse(localStorage.getItem('pendingRooms')) || [];
+        pending.push({ url: `${API_URL}/habitaciones/${id}`, method: 'DELETE', payload: null, timestamp: Date.now() });
+        localStorage.setItem('pendingRooms', JSON.stringify(pending));
+
+        window.alert('Estás offline. La habitación se eliminará cuando vuelva la red.');
+        await loadRooms();
     }
 }
 
@@ -796,28 +912,39 @@ async function registerUser(event) {
     event.preventDefault();
 
     const userData = {
-        username: document.getElementById('userName').value,
-        email: document.getElementById('userEmail').value,
+        username: document.getElementById('userName').value.trim(),
+        email: document.getElementById('userEmail').value.trim(),
         password: document.getElementById('userPassword').value,
         role: document.getElementById('userRole').value
     };
 
-    try {
-        const headers = {
-            'Content-Type': 'application/json'
-        };
-        
-        if (authToken) {
-            headers['Authorization'] = `Bearer ${authToken}`;
-        }
+    const url = `${API_URL}/users`; // Endpoint de registro
+    const method = 'POST';
 
-        const response = await fetch(`${API_URL}/users`, {
-            method: 'POST',
-            headers: headers,
+    try {
+        const headers = { 'Content-Type': 'application/json' };
+        if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
+
+        // Intentar enviar a la red
+        const response = await fetch(url, {
+            method,
+            headers,
             body: JSON.stringify(userData)
         });
 
         const data = await response.json();
+
+        // Si el SW devuelve offline: true, es que no hay conexión
+        if (data.offline) {
+            window.alert('⚠ Estás offline. El usuario se guardará localmente y se registrará cuando vuelva la red.');
+            
+            // Cerrar modal y limpiar formulario
+            const userModalElement = document.getElementById('userModal');
+            const userModalInstance = bootstrap.Modal.getInstance(userModalElement);
+            if (userModalInstance) userModalInstance.hide();
+            document.getElementById('userForm').reset();
+            return;
+        }
 
         if (data.error) {
             window.alert(data.message);
@@ -829,20 +956,162 @@ async function registerUser(event) {
         // Cerrar modal
         const userModalElement = document.getElementById('userModal');
         const userModalInstance = bootstrap.Modal.getInstance(userModalElement);
-        if (userModalInstance) {
-            userModalInstance.hide();
-        }
+        if (userModalInstance) userModalInstance.hide();
 
         // Limpiar formulario
         document.getElementById('userForm').reset();
 
-        // Recargar usuarios
+        // Recargar lista de usuarios
         await loadUsers();
+
     } catch (error) {
-        console.error('Error:', error);
-        window.alert('Error al registrar el usuario');
+        console.warn('Offline, guardando usuario en IndexedDB...', error);
+
+        // Guardar usuario en IndexedDB para sincronizar luego
+        try {
+            await savePendingUserToIDB({
+                url,
+                method,
+                body: userData,
+                meta: { username: userData.username }
+            });
+
+            window.alert('⚠ Estás offline. El usuario se guardará localmente y se registrará cuando vuelva la red.');
+
+            // Cerrar modal y limpiar formulario
+            const userModalElement = document.getElementById('userModal');
+            const userModalInstance = bootstrap.Modal.getInstance(userModalElement);
+            if (userModalInstance) userModalInstance.hide();
+            document.getElementById('userForm').reset();
+
+            // Registrar Background Sync
+            if ('serviceWorker' in navigator && 'SyncManager' in window) {
+                navigator.serviceWorker.ready.then(reg => {
+                    reg.sync.register("sync-pending-requests")
+                        .then(() => console.log("🔄 Background Sync registrado para usuario"))
+                        .catch(err => console.warn("⚠ No se pudo registrar Sync", err));
+                });
+            }
+
+        } catch (e) {
+            console.error('No se pudo guardar usuario en IndexedDB:', e);
+            window.alert('⚠ No hay conexión y no se pudo guardar el usuario localmente');
+        }
     }
 }
+
+// ==================== SINCRONIZACIÓN ====================
+// IndexedDB helpers para usuarios offline
+function openRecepcionDB() {
+    return new Promise((resolve, reject) => {
+        const req = indexedDB.open('hotel-pwa-db', 1);
+        req.onupgradeneeded = (e) => {
+            const db = e.target.result;
+            if (!db.objectStoreNames.contains('pending-requests')) {
+                db.createObjectStore('pending-requests', { keyPath: 'id', autoIncrement: true });
+            }
+        };
+        req.onsuccess = (e) => resolve(e.target.result);
+        req.onerror = (e) => reject(e.target.error);
+    });
+}
+
+function savePendingUserToIDB(obj) {
+    return openRecepcionDB().then(db => new Promise((res, rej) => {
+        const tx = db.transaction('pending-requests', 'readwrite');
+        const store = tx.objectStore('pending-requests');
+        const request = store.add(Object.assign({ createdAt: Date.now() }, obj));
+        request.onsuccess = (e) => {
+            obj.id = e.target.result;
+            db.close();
+            res(obj.id);
+            console.log('✓ Usuario guardado en IndexedDB para sincronizar después:', obj);
+        };
+        request.onerror = (e) => { db.close(); rej(e); };
+    }));
+}
+
+function getAllPendingUsers() {
+    return openRecepcionDB().then(db => new Promise((res, rej) => {
+        const tx = db.transaction('pending-requests', 'readonly');
+        const store = tx.objectStore('pending-requests');
+        const req = store.getAll();
+        req.onsuccess = () => { db.close(); res(req.result || []); };
+        req.onerror = (e) => { db.close(); rej(e); };
+    }));
+}
+
+function deletePendingUserById(id) {
+    return openRecepcionDB().then(db => new Promise((res, rej) => {
+        const tx = db.transaction('pending-requests', 'readwrite');
+        const store = tx.objectStore('pending-requests');
+        store.delete(id);
+        tx.oncomplete = () => { db.close(); res(); };
+        tx.onerror = (e) => { db.close(); rej(e); };
+    }));
+}
+
+async function syncPendingUsers() {
+    if (!navigator.onLine) return;
+
+    try {
+        const pending = await getAllPendingUsers();
+        if (pending.length === 0) {
+            console.log('No hay usuarios pendientes para sincronizar');
+            return;
+        }
+
+        console.log(`Sincronizando ${pending.length} usuario(s) pendiente(s)...`);
+
+        let successCount = 0;
+        let failureCount = 0;
+
+        for (const item of pending) {
+            try {
+                const headers = { 'Content-Type': 'application/json' };
+                if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
+
+                const response = await fetch(item.url, {
+                    method: item.method,
+                    headers,
+                    body: JSON.stringify(item.body)
+                });
+
+                const data = await response.json();
+
+                if (data.error) {
+                    console.warn(`⚠ Error al sincronizar usuario ${item.meta?.username}:`, data.message);
+                    failureCount++;
+                } else {
+                    // Eliminamos de la base de datos local tras éxito
+                    await deletePendingUserById(item.id);
+                    console.log(`✓ Usuario ${item.meta?.username} sincronizado correctamente`);
+                    successCount++;
+                }
+            } catch (err) {
+                console.error('Error al sincronizar usuario:', err);
+                failureCount++;
+            }
+        }
+
+        // Recargar usuarios después de sincronización
+        if (successCount > 0) {
+            await loadUsers();
+            window.alert(`✓ Se sincronizaron ${successCount} usuario(s) correctamente`);
+        }
+
+        if (failureCount > 0) {
+            console.warn(`⚠ ${failureCount} usuario(s) no pudieron sincronizarse. Se reinentarán cuando vuelva la red.`);
+        }
+
+    } catch (error) {
+        console.error('Error al leer usuarios pendientes:', error);
+    }
+}
+
+// Detectar reconexión a internet
+window.addEventListener('online', syncPendingUsers);
+
 
 // ==================== UI - RENDER ====================
 function renderRooms() {
@@ -994,6 +1263,11 @@ function filterRooms() {
 // ==================== INICIALIZACIÓN ====================
 async function initialize() {
     initializeAuth();
+    
+    // Sincronizar usuarios pendientes si existe conexión
+    if (navigator.onLine) {
+        await syncPendingUsers();
+    }
     
     await loadUsers();
     
