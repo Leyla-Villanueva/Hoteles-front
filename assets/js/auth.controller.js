@@ -1,7 +1,5 @@
 const authController = {};
 
-const API_URL = 'http://localhost:8082/api/';
-
 authController.doLogin = async (data) => {
 
     if (!navigator.onLine) {
@@ -24,7 +22,7 @@ authController.doLogin = async (data) => {
         return;
     }
     try {
-        const response = await fetch(`${API_URL}auth`, {
+        const response = await fetch(`${API_URL}/auth`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

@@ -339,6 +339,19 @@
                   placeholder="Ej: ana@hotel.com"
                 />
               </div>
+              <div class="mb-3">
+                <label for="userPassword" class="form-label fw-bold"
+                  >Contraseña</label
+                >
+                <input
+                  type="password"
+                  id="userPassword"
+                  class="form-control"
+                  required
+                  minlength="4"
+                  placeholder="Contraseña de acceso"
+                />
+              </div>
               <div class="mb-4">
                 <label for="userRole" class="form-label fw-bold">Rol</label>
                 <select id="userRole" class="form-select" required>
@@ -598,6 +611,39 @@
       </div>
     </div>
 
+        <!-- Modal: Ver QR -->
+    <div class="modal fade" id="qrModal" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">
+              <i class="bi bi-qr-code me-2"></i>Código QR - Habitación <span id="qrRoomNumber"></span>
+            </h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+            ></button>
+          </div>
+          <div class="modal-body text-center">
+            <div id="qrImageContainer" class="mb-3">
+              <img id="qrImage" class="img-fluid rounded border" alt="Código QR" style="max-width: 300px;">
+            </div>
+            <p class="text-muted small">Escanea este código para acceder a la información de la habitación</p>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+              Cerrar
+            </button>
+            <button type="button" class="btn btn-primary" onclick="downloadQR()">
+              <i class="bi bi-download me-2"></i>Descargar QR
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="../assets/js/kernel/properties.js"></script>
     <script src="../assets/js/bootstrap.bundle.min.js"></script>
     <script src="../app.js"></script>
     <script src="../assets/js/recepcion-api.js"></script>

@@ -1,5 +1,3 @@
-// recepcion-api.js - Conexión con el backend
-const API_URL = 'http://localhost:8082/api';
 let rooms = [];
 let users = [];
 let currentFilter = 'todas';
@@ -1006,6 +1004,9 @@ function renderRooms() {
                         <button class="btn btn-sm btn-primary flex-grow-1" onclick="event.stopPropagation(); openEditModal('${room.id}')">
                             Editar
                         </button>
+                        <button class="btn btn-sm btn-success" onclick="event.stopPropagation(); openQRModal('${room.id}', '${room.numero}')" title="Ver código QR">
+                            <i class="bi bi-qr-code"></i>
+                        </button>
                         <button class="btn btn-sm btn-info" onclick="event.stopPropagation(); openAssignModal('${room.id}', '${room.numero}')" title="Asignar camarera">
                             <i class="bi bi-person-plus"></i>
                         </button>
@@ -1090,6 +1091,79 @@ function openUserModal() {
         userModal.show();
     } catch (error) {
         console.error('Error al abrir modal:', error);
+    }
+}
+
+// ==================== QR CODE ====================
+let currentQRData = null;
+
+function openQRModal(roomId, roomNumber) {
+    const room = rooms.find(r => r.id === roomId);
+    
+    if (!room) {
+        window.alert('Habitación no encontrada');
+        return;
+    }
+
+    // Guardar datos para descarga
+    currentQRData = {
+        roomId: roomId,
+        roomNumber: roomNumber,
+        qrBase64: room.qr
+    };
+
+    // Mostrar número de habitación
+    document.getElementById('qrRoomNumber').textContent = roomNumber;
+    
+    // Mostrar imagen QR
+    const qrImage = document.getElementById('qrImage');
+    
+    if (room.qr) {
+        // El QR viene como byte array, convertirlo a base64
+        qrImage.src = `data:image/png;base64,${room.qr}`;
+        qrImage.style.display = 'block';
+    } else {
+        qrImage.style.display = 'none';
+        window.alert('Esta habitación no tiene código QR generado');
+        return;
+    }
+
+    // Abrir modal
+    const modalElement = document.getElementById('qrModal');
+    if (!modalElement) {
+        console.error('No se encontró el modal qrModal');
+        return;
+    }
+    
+    try {
+        const qrModal = new bootstrap.Modal(modalElement);
+        qrModal.show();
+    } catch (error) {
+        console.error('Error al abrir modal QR:', error);
+    }
+}
+
+function downloadQR() {
+    if (!currentQRData) {
+        window.alert('No hay código QR para descargar');
+        return;
+    }
+
+    try {
+        // Crear un enlace temporal para descargar
+        const link = document.createElement('a');
+        link.href = `data:image/png;base64,${currentQRData.qrBase64}`;
+        link.download = `QR_Habitacion_${currentQRData.roomNumber}.png`;
+        
+        // Simular click para descargar
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        console.log('QR descargado exitosamente');
+    } catch (error) {
+        console.error('Error al descargar QR:', error);
+        window.alert('Error al descargar el código QR');
     }
 }
 

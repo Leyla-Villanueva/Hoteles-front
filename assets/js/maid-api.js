@@ -1,5 +1,3 @@
-// maid-api.js - Conexión con el backend
-const API_URL = 'http://localhost:8082/api';
 let rooms = [];
 let asignaciones = [];
 let pendingMap = {}; // mapa roomId -> count de operaciones pendientes
