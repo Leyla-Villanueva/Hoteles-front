@@ -1,1 +1,1 @@
-const API_URL = 'http://trucklingly-misty-rebeca.ngrok-free.dev/api';
+const API_URL = 'https://trucklingly-misty-rebeca.ngrok-free.dev/api';
