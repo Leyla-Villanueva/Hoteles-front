@@ -58,7 +58,7 @@ function initializeAuth() {
 // ==================== HABITACIONES - API ====================
 async function loadRooms() {
     try {
-        const headers = { 'Content-Type': 'application/json' };
+        const headers = { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' };
         if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
 
         console.log('🔄 Cargando habitaciones desde:', `${API_URL}/habitaciones`);
@@ -95,7 +95,7 @@ async function loadRooms() {
 
 async function loadAllAsignaciones() {
     try {
-        const headers = { 'Content-Type': 'application/json' };
+        const headers = { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' };
         if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
 
         const result = await fetchJSON(`${API_URL}/asignaciones/activas`, { 
@@ -140,7 +140,7 @@ async function saveRoom(event) {
     const url = editingRoomId ? `${API_URL}/habitaciones/estado` : `${API_URL}/habitaciones`;
 
     try {
-        const headers = { 'Content-Type': 'application/json' };
+        const headers = { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' };
         if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
 
         const result = await fetchJSON(url, { 
@@ -176,7 +176,7 @@ async function deleteRoom(id) {
     }
 
     try {
-        const headers = { 'Content-Type': 'application/json' };
+        const headers = { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' };
         if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
 
         const result = await fetchJSON(`${API_URL}/habitaciones/${id}`, { 
@@ -206,7 +206,7 @@ async function deleteRoom(id) {
 // ==================== USUARIOS - API ====================
 async function loadUsers() {
     try {
-        const headers = { 'Content-Type': 'application/json' };
+        const headers = { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' };
         if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
 
         console.log('🔄 Cargando usuarios...');
@@ -246,7 +246,7 @@ async function registerUser(event) {
     };
 
     try {
-        const headers = { 'Content-Type': 'application/json' };
+        const headers = { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' };
         if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
 
         const result = await fetchJSON(`${API_URL}/users`, {
@@ -299,7 +299,7 @@ async function updateUser(event) {
     }
 
     try {
-        const headers = { 'Content-Type': 'application/json' };
+        const headers = { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' };
         if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
 
         const result = await fetchJSON(`${API_URL}/users`, {
@@ -341,7 +341,7 @@ async function deleteUser(userId, username) {
     }
 
     try {
-        const headers = { 'Content-Type': 'application/json' };
+        const headers = { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' };
         if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
 
         const result = await fetchJSON(`${API_URL}/users/${userId}`, {
@@ -374,7 +374,7 @@ let reportes = [];
 
 async function loadReportes() {
     try {
-        const headers = { 'Content-Type': 'application/json' };
+        const headers = { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' };
         if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
 
         console.log('🔄 Cargando reportes...');
@@ -481,7 +481,7 @@ async function resolverReporte(reporteId, habitacionId) {
     }
 
     try {
-        const headers = { 'Content-Type': 'application/json' };
+        const headers = { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' };
         if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
 
         const result = await fetchJSON(`${API_URL}/habitaciones/estado`, {
@@ -524,7 +524,7 @@ async function assignChambermaid(event) {
     }
 
     try {
-        const headers = { 'Content-Type': 'application/json' };
+        const headers = { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' };
         if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
 
         const payload = {
