@@ -2,6 +2,7 @@
 const API_URL = 'http://localhost:8082/api';
 let rooms = [];
 let asignaciones = [];
+let pendingMap = {}; // mapa roomId -> count de operaciones pendientes
 let currentFilter = 'asignadas';
 let selectedRoom = null;
 let currentUser = null;
@@ -345,6 +346,8 @@ async function loadRooms() {
 
         rooms = data.data || [];
         await loadAsignaciones();
+        // Actualizar mapa de pendientes antes de renderizar para mostrar badges
+        await updatePendingMap();
         renderRooms();
         updateStats();
     } catch (error) {
@@ -479,10 +482,12 @@ async function submitSiniestro() {
         return;
     }
 
+    let reporteData = null;
+
     try {
         const base64Image = await fileToBase64(file);
 
-        const reporteData = {
+        reporteData = {
             descripcion: desc,
             imagenBase64: base64Image,
             usuarioId: currentUser.id,
@@ -527,8 +532,57 @@ async function submitSiniestro() {
         document.getElementById('siniestros').classList.add('hidden');
         document.getElementById('habitaciones').classList.remove('hidden');
     } catch (error) {
-        console.error('Error:', error);
-        window.alert('Error al reportar el siniestro');
+        console.error('Error al enviar reporte (offline?):', error);
+
+        // Si reporteData existe, guardar en la cola cliente para reenviar luego
+        if (reporteData) {
+            try {
+                await savePendingRequestClient({
+                    url: `${API_URL}/reportes`,
+                    method: 'POST',
+                    body: reporteData,
+                    meta: { roomId, descripcion: desc }
+                });
+
+                // Actualizar UI: marcar habitación como bloqueada localmente
+                const room = rooms.find(r => String(r.id) === String(roomId));
+                if (room) {
+                    room.estado = 'BLOQUEADA';
+                }
+                renderRooms();
+
+                // Limpiar formulario
+                document.getElementById('siniestroRoom').value = '';
+                document.getElementById('siniestroDesc').value = '';
+                document.getElementById('siniestroFile').value = '';
+                document.getElementById('imagePreview').classList.add('hidden');
+
+                showNotification('⚠ Sin conexión. El reporte se guardó localmente y se sincronizará al volver a estar en línea.', 'warning');
+
+                // Registrar Background Sync si es posible
+                if ('serviceWorker' in navigator && 'SyncManager' in window) {
+                    navigator.serviceWorker.ready.then(reg => {
+                        reg.sync.register('sync-pending-requests').catch(() => {});
+                    }).catch(() => {});
+                } else if (navigator.onLine) {
+                    // Si estamos online (pero fetch falló por otra razón), intentar reenvío desde cliente
+                    sendPendingRequestsFromClient();
+                }
+
+                // Volver a la pestaña de habitaciones
+                const tabs = document.querySelectorAll('.tab');
+                tabs.forEach(t => t.classList.remove('active'));
+                tabs[0].classList.add('active');
+                document.getElementById('siniestros').classList.add('hidden');
+                document.getElementById('habitaciones').classList.remove('hidden');
+
+            } catch (e) {
+                console.error('No se pudo guardar el reporte en la cola local:', e);
+                window.alert('Error al reportar el siniestro');
+            }
+        } else {
+            window.alert('Error al procesar la imagen del reporte');
+        }
     }
 }
 
@@ -610,6 +664,11 @@ function createRoomCard(room) {
     const assignedBadge = room.assigned ?
         '<span class="assigned-badge d-block"><i class="bi bi-person-check-fill me-1"></i> Asignada a mí</span>' : '';
 
+    // Badge para cambios pendientes (guardados offline)
+    const pendingCount = pendingMap[String(room.id)] || 0;
+    const pendingBadge = pendingCount ?
+        `<span class="pending-badge d-block text-warning"><i class="bi bi-hourglass-split me-1"></i> Pendiente (${pendingCount})</span>` : '';
+
     card.className = `room-card ${estadoLower} card p-3 rounded-4 shadow-sm`;
     card.innerHTML = `
         <div class="d-flex align-items-center mb-2" style="width: 100%;">
@@ -623,6 +682,7 @@ function createRoomCard(room) {
             </div>
         </div>
         ${assignedBadge}
+        ${pendingBadge}
         ${siniestroHTML}
         <div class="room-info mt-3 small text-muted">
             <div class="d-flex align-items-center mb-1" style="width: 100%;">
@@ -840,6 +900,29 @@ function savePendingRequestClient(obj) {
     }));
 }
 
+// Actualizar mapa local de pendientes (uso antes de renderizar)
+async function updatePendingMap() {
+    try {
+        const items = await getAllPendingClient();
+        const map = {};
+        for (const it of items) {
+            // si body tiene habitacionId o meta.roomId intentamos asociar
+            let roomId = null;
+            if (it.meta && it.meta.roomId) roomId = String(it.meta.roomId);
+            // para PUT a marcar-limpia podemos extraer id desde la URL
+            if (!roomId && it.url) {
+                const m = it.url.match(/marcar-limpia\/(\d+)/);
+                if (m) roomId = String(m[1]);
+            }
+            if (roomId) map[roomId] = (map[roomId] || 0) + 1;
+        }
+        pendingMap = map;
+    } catch (e) {
+        console.warn('No se pudo obtener pendientes para map:', e);
+        pendingMap = {};
+    }
+}
+
 function getAllPendingClient() {
     return openClientDB().then(db => new Promise((res, rej) => {
         const tx = db.transaction('pending-requests', 'readonly');
@@ -896,6 +979,8 @@ async function sendPendingRequestsFromClient() {
 
         if (success) {
             showNotification(`✓ ${success} cambios sincronizados`, 'success');
+            // Actualizar mapa y refrescar estados
+            await updatePendingMap();
             await loadRooms();
         }
 
