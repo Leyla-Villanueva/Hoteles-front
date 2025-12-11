@@ -26,6 +26,8 @@ authController.doLogin = async (data) => {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'ngrok-skip-browser-warning': 'true'
+
             },
             body: JSON.stringify(data),
         }).then(res => res.json());
