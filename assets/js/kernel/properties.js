@@ -1,1 +1,1 @@
-const API_URL = 'http://localhost:8082/api';
+const API_URL = 'https://trucklingly-misty-rebeca.ngrok-free.dev/api';
