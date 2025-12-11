@@ -2,6 +2,7 @@
 const API_URL = 'http://localhost:8082/api';
 let rooms = [];
 let asignaciones = [];
+let pendingMap = {}; // mapa roomId -> count de operaciones pendientes
 let currentFilter = 'asignadas';
 let selectedRoom = null;
 let currentUser = null;
@@ -239,7 +240,31 @@ async function markCleanFromQR() {
         await loadRooms();
     } catch (error) {
         console.error('Error:', error);
-        window.alert('Error al marcar la habitación como limpia');
+
+        // Si está offline, guardar la petición en la DB cliente y actualizar UI
+        try {
+            await savePendingRequestClient({
+                url: `${API_URL}/habitaciones/marcar-limpia/${scannedRoomFromQR.id}`,
+                method: 'PUT',
+                body: null,
+                meta: { roomNumber: scannedRoomFromQR.numero }
+            });
+
+            showNotification(`⚠ No hay conexión. El cambio se guardó localmente y se sincronizará al volver a estar en línea.`, 'warning');
+            // Actualiza UI localmente
+            scannedRoomFromQR.estado = 'limpia';
+            await loadRooms();
+
+            // Registrar Background Sync si está disponible
+            if ('serviceWorker' in navigator && 'SyncManager' in window) {
+                navigator.serviceWorker.ready.then(reg => {
+                    reg.sync.register("sync-pending-requests").catch(() => {});
+                });
+            }
+        } catch (e) {
+            console.error('No se pudo guardar petición offline desde QR:', e);
+            window.alert('Error al marcar la habitación como limpia');
+        }
     }
 }
 
@@ -321,6 +346,8 @@ async function loadRooms() {
 
         rooms = data.data || [];
         await loadAsignaciones();
+        // Actualizar mapa de pendientes antes de renderizar para mostrar badges
+        await updatePendingMap();
         renderRooms();
         updateStats();
     } catch (error) {
@@ -381,6 +408,21 @@ async function markClean() {
 
         const data = await response.json();
 
+        // Si estamos offline, el SW devolverá { offline: true }
+        if (data.offline) {
+            showNotification(
+                `⚠ Estás sin conexión. El estado de la habitación ${selectedRoom.numero} se sincronizará cuando regreses a internet.`,
+                'warning'
+            );
+
+            // Cambiar el estado en la UI directamente
+            selectedRoom.estado = 'limpia';
+            renderRooms();
+            closeModal();
+            return;
+        }
+
+        // Normal cuando sí hay red
         if (data.error) {
             window.alert(data.message);
             return;
@@ -389,11 +431,45 @@ async function markClean() {
         showNotification(`✓ Habitación ${selectedRoom.numero} marcada como limpia`, 'success');
         closeModal();
         await loadRooms();
+
     } catch (error) {
-        console.error('Error:', error);
-        window.alert('Error al marcar la habitación como limpia');
+        // Sin internet → el fetch revienta → caemos aquí
+        console.error('Error OFFLINE:', error);
+        // Guardar la petición en IndexedDB desde la página (cliente) para reenviar con token fresco
+        try {
+            await savePendingRequestClient({
+                url: `${API_URL}/habitaciones/marcar-limpia/${selectedRoom.id}`,
+                method: 'PUT',
+                body: null,
+                meta: { roomNumber: selectedRoom.numero }
+            });
+
+            showNotification(
+                `⚠ No hay conexión. El cambio se guardó localmente y se sincronizará al volver a estar en línea.`,
+                'warning'
+            );
+
+            // Actualiza la UI localmente para que el usuario vea el cambio
+            selectedRoom.estado = 'limpia';
+            renderRooms();
+            closeModal();
+
+            // Intentar registrar Background Sync y también ejecutar reenvío desde cliente al volver online
+            if ('serviceWorker' in navigator && 'SyncManager' in window) {
+                navigator.serviceWorker.ready.then(reg => {
+                    reg.sync.register("sync-pending-requests")
+                        .then(() => console.log("🔄 Background Sync registrado"))
+                        .catch(err => console.warn("⚠ No se pudo registrar Sync", err));
+                });
+            }
+
+        } catch (e) {
+            console.error('No se pudo guardar petición offline en IDB:', e);
+            showNotification('⚠ No hay conexión y no se pudo guardar el cambio localmente', 'danger');
+        }
     }
 }
+
 
 // ==================== REPORTES - API ====================
 async function submitSiniestro() {
@@ -406,10 +482,12 @@ async function submitSiniestro() {
         return;
     }
 
+    let reporteData = null;
+
     try {
         const base64Image = await fileToBase64(file);
 
-        const reporteData = {
+        reporteData = {
             descripcion: desc,
             imagenBase64: base64Image,
             usuarioId: currentUser.id,
@@ -454,8 +532,57 @@ async function submitSiniestro() {
         document.getElementById('siniestros').classList.add('hidden');
         document.getElementById('habitaciones').classList.remove('hidden');
     } catch (error) {
-        console.error('Error:', error);
-        window.alert('Error al reportar el siniestro');
+        console.error('Error al enviar reporte (offline?):', error);
+
+        // Si reporteData existe, guardar en la cola cliente para reenviar luego
+        if (reporteData) {
+            try {
+                await savePendingRequestClient({
+                    url: `${API_URL}/reportes`,
+                    method: 'POST',
+                    body: reporteData,
+                    meta: { roomId, descripcion: desc }
+                });
+
+                // Actualizar UI: marcar habitación como bloqueada localmente
+                const room = rooms.find(r => String(r.id) === String(roomId));
+                if (room) {
+                    room.estado = 'BLOQUEADA';
+                }
+                renderRooms();
+
+                // Limpiar formulario
+                document.getElementById('siniestroRoom').value = '';
+                document.getElementById('siniestroDesc').value = '';
+                document.getElementById('siniestroFile').value = '';
+                document.getElementById('imagePreview').classList.add('hidden');
+
+                showNotification('⚠ Sin conexión. El reporte se guardó localmente y se sincronizará al volver a estar en línea.', 'warning');
+
+                // Registrar Background Sync si es posible
+                if ('serviceWorker' in navigator && 'SyncManager' in window) {
+                    navigator.serviceWorker.ready.then(reg => {
+                        reg.sync.register('sync-pending-requests').catch(() => {});
+                    }).catch(() => {});
+                } else if (navigator.onLine) {
+                    // Si estamos online (pero fetch falló por otra razón), intentar reenvío desde cliente
+                    sendPendingRequestsFromClient();
+                }
+
+                // Volver a la pestaña de habitaciones
+                const tabs = document.querySelectorAll('.tab');
+                tabs.forEach(t => t.classList.remove('active'));
+                tabs[0].classList.add('active');
+                document.getElementById('siniestros').classList.add('hidden');
+                document.getElementById('habitaciones').classList.remove('hidden');
+
+            } catch (e) {
+                console.error('No se pudo guardar el reporte en la cola local:', e);
+                window.alert('Error al reportar el siniestro');
+            }
+        } else {
+            window.alert('Error al procesar la imagen del reporte');
+        }
     }
 }
 
@@ -537,6 +664,11 @@ function createRoomCard(room) {
     const assignedBadge = room.assigned ?
         '<span class="assigned-badge d-block"><i class="bi bi-person-check-fill me-1"></i> Asignada a mí</span>' : '';
 
+    // Badge para cambios pendientes (guardados offline)
+    const pendingCount = pendingMap[String(room.id)] || 0;
+    const pendingBadge = pendingCount ?
+        `<span class="pending-badge d-block text-warning"><i class="bi bi-hourglass-split me-1"></i> Pendiente (${pendingCount})</span>` : '';
+
     card.className = `room-card ${estadoLower} card p-3 rounded-4 shadow-sm`;
     card.innerHTML = `
         <div class="d-flex align-items-center mb-2" style="width: 100%;">
@@ -550,6 +682,7 @@ function createRoomCard(room) {
             </div>
         </div>
         ${assignedBadge}
+        ${pendingBadge}
         ${siniestroHTML}
         <div class="room-info mt-3 small text-muted">
             <div class="d-flex align-items-center mb-1" style="width: 100%;">
@@ -708,3 +841,163 @@ if (document.readyState === 'loading') {
 } else {
     initialize();
 }
+
+// Escuchar mensajes desde el Service Worker para detectar cuando se reenviaron peticiones
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.addEventListener('message', event => {
+        const data = event.data;
+        if (!data) return;
+
+        if (data.type === 'requests-synced') {
+            const success = data.success || 0;
+            const failures = data.failures || 0;
+            showNotification(`✓ ${success} cambios sincronizados${failures ? ' (' + failures + ' fallidos)' : ''}`, 'success');
+            // Refrescar datos para que las cards muestren el estado real del servidor
+            loadRooms();
+        }
+    });
+}
+
+// Fallback para browsers sin Background Sync: al volver online pedir al SW que sincronice
+window.addEventListener('online', () => {
+    if (!('serviceWorker' in navigator)) return;
+
+    navigator.serviceWorker.ready.then(reg => {
+        if ('sync' in reg) {
+            // Registrar sync (si no está registrado ya)
+            reg.sync.register('sync-pending-requests').catch(() => {});
+        } else if (navigator.serviceWorker.controller) {
+            // Enviar mensaje al SW para que ejecute el reenvío
+            navigator.serviceWorker.controller.postMessage({ type: 'sync' });
+        }
+    }).catch(() => {});
+});
+
+// ---------------------------
+// IndexedDB helpers (cliente)
+// ---------------------------
+function openClientDB() {
+    return new Promise((resolve, reject) => {
+        const req = indexedDB.open('hotel-pwa-db', 1);
+        req.onupgradeneeded = (e) => {
+            const db = e.target.result;
+            if (!db.objectStoreNames.contains('pending-requests')) {
+                db.createObjectStore('pending-requests', { keyPath: 'id', autoIncrement: true });
+            }
+        };
+        req.onsuccess = (e) => resolve(e.target.result);
+        req.onerror = (e) => reject(e.target.error);
+    });
+}
+
+function savePendingRequestClient(obj) {
+    return openClientDB().then(db => new Promise((res, rej) => {
+        const tx = db.transaction('pending-requests', 'readwrite');
+        const store = tx.objectStore('pending-requests');
+        store.add(Object.assign({ createdAt: Date.now() }, obj));
+        tx.oncomplete = () => { db.close(); res(); };
+        tx.onerror = (e) => { db.close(); rej(e); };
+    }));
+}
+
+// Actualizar mapa local de pendientes (uso antes de renderizar)
+async function updatePendingMap() {
+    try {
+        const items = await getAllPendingClient();
+        const map = {};
+        for (const it of items) {
+            // si body tiene habitacionId o meta.roomId intentamos asociar
+            let roomId = null;
+            if (it.meta && it.meta.roomId) roomId = String(it.meta.roomId);
+            // para PUT a marcar-limpia podemos extraer id desde la URL
+            if (!roomId && it.url) {
+                const m = it.url.match(/marcar-limpia\/(\d+)/);
+                if (m) roomId = String(m[1]);
+            }
+            if (roomId) map[roomId] = (map[roomId] || 0) + 1;
+        }
+        pendingMap = map;
+    } catch (e) {
+        console.warn('No se pudo obtener pendientes para map:', e);
+        pendingMap = {};
+    }
+}
+
+function getAllPendingClient() {
+    return openClientDB().then(db => new Promise((res, rej) => {
+        const tx = db.transaction('pending-requests', 'readonly');
+        const store = tx.objectStore('pending-requests');
+        const req = store.getAll();
+        req.onsuccess = () => { db.close(); res(req.result || []); };
+        req.onerror = (e) => { db.close(); rej(e); };
+    }));
+}
+
+function deletePendingClientById(id) {
+    return openClientDB().then(db => new Promise((res, rej) => {
+        const tx = db.transaction('pending-requests', 'readwrite');
+        const store = tx.objectStore('pending-requests');
+        store.delete(id);
+        tx.oncomplete = () => { db.close(); res(); };
+        tx.onerror = (e) => { db.close(); rej(e); };
+    }));
+}
+
+// Reenviar peticiones pendientes desde la página (usa token actual)
+async function sendPendingRequestsFromClient() {
+    try {
+        const items = await getAllPendingClient();
+        if (!items.length) return;
+
+        let success = 0;
+        let failures = 0;
+
+        for (const req of items) {
+            try {
+                const headers = { 'Content-Type': 'application/json' };
+                if (sessionStorage.getItem('token')) {
+                    headers['Authorization'] = `Bearer ${sessionStorage.getItem('token')}`;
+                }
+
+                const options = { method: req.method, headers };
+                if (req.body) options.body = JSON.stringify(req.body);
+
+                const resp = await fetch(req.url, options);
+                const json = await resp.json().catch(() => null);
+
+                if (resp.ok && (!json || !json.error)) {
+                    await deletePendingClientById(req.id);
+                    success++;
+                } else {
+                    failures++;
+                }
+            } catch (e) {
+                console.warn('Fallo al reenviar petición desde cliente:', e);
+                failures++;
+            }
+        }
+
+        if (success) {
+            showNotification(`✓ ${success} cambios sincronizados`, 'success');
+            // Actualizar mapa y refrescar estados
+            await updatePendingMap();
+            await loadRooms();
+        }
+
+        // Notificar al SW también (por si el SW quiere actualizar su cola)
+        if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+            navigator.serviceWorker.controller.postMessage({ type: 'client-synced', success, failures });
+        }
+
+    } catch (e) {
+        console.error('Error al enviar pendientes desde cliente:', e);
+    }
+}
+
+// Llamar al reenvío cuando volvemos online
+window.addEventListener('online', () => {
+    sendPendingRequestsFromClient();
+});
+
+// Intentar enviar pendientes al cargar la página si hay conexión
+if (navigator.onLine) sendPendingRequestsFromClient();

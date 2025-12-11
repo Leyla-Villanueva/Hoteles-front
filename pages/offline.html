@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sin conexión</title>
+
+    <link rel="stylesheet" href="../assets/css/bootstrap.min.css">
+
+    <style>
+        body {
+            background-color: #f8f9fa;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .offline-card {
+            max-width: 380px;
+            text-align: center;
+            padding: 30px;
+        }
+
+        .offline-icon {
+            font-size: 60px;
+            color: #6c757d;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="card shadow offline-card">
+        <div class="card-body">
+            <div class="offline-icon mb-3">
+                🚫
+            </div>
+            <h4 class="card-title mb-3">Estás sin conexión</h4>
+            <p class="card-text text-muted">
+                No pudimos cargar los datos porque no tienes acceso a Internet.
+                <br><br>
+            </p>
+
+            <a href="/" class="btn btn-primary mt-3">Volver al inicio</a>
+        </div>
+    </div>
+
+    <script src="../assets/js/bootstrap.bundle.min.js"></script>
+
+</body>
+</html>
