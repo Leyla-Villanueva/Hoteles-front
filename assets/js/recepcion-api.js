@@ -1,5 +1,3 @@
-// recepcion-api.js - Conexión con el backend
-const API_URL = 'http://localhost:8082/api';
 let rooms = [];
 let users = [];
 let currentFilter = 'todas';
@@ -562,40 +560,22 @@ function logout() {
 }
 
 // ==================== HABITACIONES - API ====================
-async function fetchWithCache(url, options = {}, cacheKey = url) {
-    try {
-        const response = await fetch(url, options);
-        if (!response.ok) throw new Error('Error en la red');
-
-        const clonedResponse = response.clone();
-        const data = await response.json();
-
-        // Guardar en cache
-        if ('caches' in window) {
-            const cache = await caches.open('hotel-cache-v1');
-            await cache.put(cacheKey, new Response(JSON.stringify(data)));
-        }
-
-        return data;
-    } catch (error) {
-        console.warn('Red fallida, intentando cache...', error);
-        if ('caches' in window) {
-            const cache = await caches.open('hotel-cache-v1');
-            const cachedResponse = await cache.match(cacheKey);
-            if (cachedResponse) {
-                return cachedResponse.json();
-            }
-        }
-        throw error; // si no hay cache, lanza el error
-    }
-}
-
 async function loadRooms() {
     try {
-        const headers = { 'Content-Type': 'application/json' };
-        if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
+        const headers = {
+            'Content-Type': 'application/json'
+        };
+        
+        if (authToken) {
+            headers['Authorization'] = `Bearer ${authToken}`;
+        }
 
-        const data = await fetchWithCache(`${API_URL}/habitaciones`, { headers });
+        const response = await fetch(`${API_URL}/habitaciones`, {
+            method: 'GET',
+            headers: headers
+        });
+        
+        const data = await response.json();
 
         if (data.error) {
             console.error('Error al cargar habitaciones:', data.message);
@@ -603,23 +583,34 @@ async function loadRooms() {
         }
 
         rooms = data.data || [];
-
-        await loadAllAsignaciones(); // Cargar asignaciones
-
+        
+        // Cargar asignaciones para cada habitación
+        await loadAllAsignaciones();
+        
         renderRooms();
         updateStats();
     } catch (error) {
-        console.error('Error de conexión o cache:', error);
-        window.alert('No se pudieron cargar habitaciones (offline o error de red)');
+        console.error('Error de conexión:', error);
+        window.alert('Error al conectar con el servidor');
     }
 }
 
 async function loadAllAsignaciones() {
     try {
-        const headers = { 'Content-Type': 'application/json' };
-        if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
+        const headers = {
+            'Content-Type': 'application/json'
+        };
+        
+        if (authToken) {
+            headers['Authorization'] = `Bearer ${authToken}`;
+        }
 
-        const data = await fetchWithCache(`${API_URL}/asignaciones/activas`, { headers });
+        const response = await fetch(`${API_URL}/asignaciones/activas`, {
+            method: 'GET',
+            headers: headers
+        });
+        
+        const data = await response.json();
 
         if (data.error) {
             console.error('Error al cargar asignaciones:', data.message);
@@ -627,7 +618,8 @@ async function loadAllAsignaciones() {
         }
 
         const asignaciones = data.data || [];
-
+        
+        // Agregar info de asignación a cada habitación
         rooms.forEach(room => {
             const asignacion = asignaciones.find(a => a.habitacionId === room.id);
             if (asignacion) {
@@ -638,125 +630,11 @@ async function loadAllAsignaciones() {
                 room.camareraAsignada = null;
             }
         });
-
+        
     } catch (error) {
         console.error('Error al cargar asignaciones:', error);
     }
 }
-
-async function saveRoom(event) {
-    event.preventDefault();
-
-    const roomData = {
-        numero: document.getElementById('roomNumber').value.trim(),
-        estado: document.getElementById('roomStatus').value.toUpperCase()
-    };
-
-    const payload = editingRoomId ? { id: editingRoomId, estado: roomData.estado } : roomData;
-
-    const method = editingRoomId ? 'PUT' : 'POST';
-    const url = editingRoomId ? `${API_URL}/habitaciones/estado` : `${API_URL}/habitaciones`;
-
-    try {
-        const headers = { 'Content-Type': 'application/json' };
-        if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
-
-        // Intentar enviar a la red
-        const response = await fetch(url, { method, headers, body: JSON.stringify(payload) });
-
-        if (!response.ok) throw new Error('Error en la red');
-
-        const data = await response.json();
-
-        const alertElement = document.getElementById('alertMsg');
-        alertElement.textContent = editingRoomId ? 'Habitación actualizada correctamente' : 'Habitación creada correctamente';
-        alertElement.classList.remove('d-none');
-        alertElement.classList.add('d-block');
-
-        await loadRooms();
-
-        setTimeout(() => closeModal(), 1500);
-
-    } catch (error) {
-        console.warn('No hay red, guardando cambios localmente...', error);
-
-        // Guardar en cache para sincronizar luego
-        if ('localStorage' in window) {
-            const pending = JSON.parse(localStorage.getItem('pendingRooms')) || [];
-            pending.push({ url, method, payload, timestamp: Date.now() });
-            localStorage.setItem('pendingRooms', JSON.stringify(pending));
-
-            window.alert('Estás offline. Los cambios se guardarán y se sincronizarán cuando vuelva la red.');
-            await loadRooms();
-            setTimeout(() => closeModal(), 1500);
-        } else {
-            window.alert('Error al guardar habitación offline');
-        }
-    }
-}
-
-async function syncPendingRooms() {
-    if (!navigator.onLine) return;
-
-    const pending = JSON.parse(localStorage.getItem('pendingRooms')) || [];
-    if (pending.length === 0) return;
-
-    for (const item of pending) {
-        try {
-            const headers = { 'Content-Type': 'application/json' };
-            if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
-
-            await fetch(item.url, {
-                method: item.method,
-                headers,
-                body: JSON.stringify(item.payload)
-            });
-        } catch (err) {
-            console.error('Error al sincronizar habitación:', err);
-        }
-    }
-
-    localStorage.removeItem('pendingRooms');
-    await loadRooms();
-}
-
-// Detectar reconexión a internet
-window.addEventListener('online', syncPendingRooms);
-
-
-async function deleteRoom(id) {
-    if (!window.confirm('¿Está seguro de eliminar esta habitación?')) return;
-
-    try {
-        const headers = { 'Content-Type': 'application/json' };
-        if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
-
-        const response = await fetch(`${API_URL}/habitaciones/${id}`, { method: 'DELETE', headers });
-        const data = await response.json();
-
-        if (data.error) {
-            window.alert(data.message);
-            return;
-        }
-
-        window.alert('Habitación eliminada correctamente');
-        await loadRooms();
-
-    } catch (error) {
-        console.warn('No hay red, eliminando localmente...');
-        // Guardar en pending para eliminar luego
-        const pending = JSON.parse(localStorage.getItem('pendingRooms')) || [];
-        pending.push({ url: `${API_URL}/habitaciones/${id}`, method: 'DELETE', payload: null, timestamp: Date.now() });
-        localStorage.setItem('pendingRooms', JSON.stringify(pending));
-
-        window.alert('Estás offline. La habitación se eliminará cuando vuelva la red.');
-        await loadRooms();
-    }
-}
-
-
-
-
 
 async function saveRoom(event) {
     event.preventDefault();
@@ -1006,6 +884,9 @@ function renderRooms() {
                         <button class="btn btn-sm btn-primary flex-grow-1" onclick="event.stopPropagation(); openEditModal('${room.id}')">
                             Editar
                         </button>
+                        <button class="btn btn-sm btn-success" onclick="event.stopPropagation(); openQRModal('${room.id}', '${room.numero}')" title="Ver código QR">
+                            <i class="bi bi-qr-code"></i>
+                        </button>
                         <button class="btn btn-sm btn-info" onclick="event.stopPropagation(); openAssignModal('${room.id}', '${room.numero}')" title="Asignar camarera">
                             <i class="bi bi-person-plus"></i>
                         </button>
@@ -1090,6 +971,79 @@ function openUserModal() {
         userModal.show();
     } catch (error) {
         console.error('Error al abrir modal:', error);
+    }
+}
+
+// ==================== QR CODE ====================
+let currentQRData = null;
+
+function openQRModal(roomId, roomNumber) {
+    const room = rooms.find(r => r.id === roomId);
+    
+    if (!room) {
+        window.alert('Habitación no encontrada');
+        return;
+    }
+
+    // Guardar datos para descarga
+    currentQRData = {
+        roomId: roomId,
+        roomNumber: roomNumber,
+        qrBase64: room.qr
+    };
+
+    // Mostrar número de habitación
+    document.getElementById('qrRoomNumber').textContent = roomNumber;
+    
+    // Mostrar imagen QR
+    const qrImage = document.getElementById('qrImage');
+    
+    if (room.qr) {
+        // El QR viene como byte array, convertirlo a base64
+        qrImage.src = `data:image/png;base64,${room.qr}`;
+        qrImage.style.display = 'block';
+    } else {
+        qrImage.style.display = 'none';
+        window.alert('Esta habitación no tiene código QR generado');
+        return;
+    }
+
+    // Abrir modal
+    const modalElement = document.getElementById('qrModal');
+    if (!modalElement) {
+        console.error('No se encontró el modal qrModal');
+        return;
+    }
+    
+    try {
+        const qrModal = new bootstrap.Modal(modalElement);
+        qrModal.show();
+    } catch (error) {
+        console.error('Error al abrir modal QR:', error);
+    }
+}
+
+function downloadQR() {
+    if (!currentQRData) {
+        window.alert('No hay código QR para descargar');
+        return;
+    }
+
+    try {
+        // Crear un enlace temporal para descargar
+        const link = document.createElement('a');
+        link.href = `data:image/png;base64,${currentQRData.qrBase64}`;
+        link.download = `QR_Habitacion_${currentQRData.roomNumber}.png`;
+        
+        // Simular click para descargar
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        console.log('QR descargado exitosamente');
+    } catch (error) {
+        console.error('Error al descargar QR:', error);
+        window.alert('Error al descargar el código QR');
     }
 }
 
