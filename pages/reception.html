@@ -1,376 +1,627 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Recepción</title>
-
     <link rel="manifest" href="../manifest.json" />
-    <link rel="stylesheet" href="../assets/css/bootstrap.min.css"/>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="../assets/css/bootstrap.min.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
+    />
     <link rel="icon" href="../assets/icons/icon-192.png" />
-
     <style>
-        /* Estilos personalizados y Variables CSS */
-        :root {
-            --primary-color: #1B3A4B;
-            --secondary-color: #0A9396;
-            --success-color: #10b981;
-            --danger-color: #ef4444;
-            --warning-color: #fef3c7;
-            --muted-color: #6b7280;
-        }
-
-        body {
-            /* Fondo degradado suave */
-            background: linear-gradient(135deg, #e4e7e5 0%, #d8d4dc 100%);
-            min-height: 100vh;
-            padding-top: 65px; /* Espacio para la navbar fija */
-        }
-
-        /* CARD DE HABITACIÓN */
-        .room-card {
-            transition: all 0.3s;
-            cursor: pointer;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .room-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2) !important;
-        }
-
-        .room-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 5px;
-        }
-
-        /* COLORES DE ESTADO */
-        .room-card.limpia::before { background: var(--success-color); }
-        .room-card.sucia::before { background: var(--danger-color); }
-        .room-card.ocupada::before { background: var(--secondary-color); }
-        .room-card.bloqueada::before { background: var(--muted-color); }
-
-        .status-limpia { background-color: #d1fae5; color: #065f46; }
-        .status-sucia { background-color: #fee2e2; color: #991b1b; }
-        .status-ocupada { background-color: #d0f4f6; color: var(--secondary-color); }
-        .status-bloqueada { background-color: #e5e7eb; color: #374151; }
-
-        .incident-badge {
-            background: var(--warning-color);
-            color: #92400e;
-            padding: 4px 8px;
-            border-radius: 6px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            display: inline-block;
-            margin-top: 8px;
-        }
-
-        .room-number {
-            font-size: 2rem;
-            font-weight: bold;
-            color: #333;
-        }
-
-        /* Estilo para el botón primario de Bootstrap (asegurar el color custom) */
-        .btn-primary, .btn-primary:hover, .btn-primary:focus {
-            background-color: var(--primary-color) !important;
-            border-color: var(--primary-color) !important;
-        }
-        .btn-primary:hover {
-             background-color: #0F1F26 !important;
-        }
-        
-        /* NUEVO: Estilo para el rol del usuario en la Navbar */
-        .user-role-badge {
-            font-size: 0.8rem;
-            font-weight: 600;
-            padding: 2px 8px;
-            border-radius: 4px;
-            margin-left: 8px;
-            color: white;
-            background-color: var(--secondary-color); 
-        }
+      :root {
+        --primary-color: #1b3a4b;
+        --secondary-color: #0a9396;
+        --success-color: #10b981;
+        --danger-color: #ef4444;
+        --warning-color: #fef3c7;
+        --muted-color: #6b7280;
+      }
+      body {
+        background: linear-gradient(135deg, #e4e7e5 0%, #d8d4dc 100%);
+        min-height: 100vh;
+        padding-top: 65px;
+      }
+      .room-card {
+        transition: all 0.3s;
+        cursor: pointer;
+        position: relative;
+        overflow: hidden;
+      }
+      .room-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2) !important;
+      }
+      .room-card::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 5px;
+      }
+      .room-card.limpia::before {
+        background: var(--success-color);
+      }
+      .room-card.sucia::before {
+        background: var(--danger-color);
+      }
+      .room-card.ocupada::before {
+        background: var(--secondary-color);
+      }
+      .room-card.bloqueada::before {
+        background: var(--muted-color);
+      }
+      .room-number {
+        font-size: 2rem;
+        font-weight: bold;
+        color: #333;
+      }
+      .btn-primary,
+      .btn-primary:hover,
+      .btn-primary:focus {
+        background-color: var(--primary-color) !important;
+        border-color: var(--primary-color) !important;
+      }
+      .btn-primary:hover {
+        background-color: #0f1f26 !important;
+      }
+      .user-role-badge {
+        font-size: 0.8rem;
+        font-weight: 600;
+        padding: 2px 8px;
+        border-radius: 4px;
+        margin-left: 8px;
+        color: white;
+        background-color: var(--secondary-color);
+      }
     </style>
-</head>
-<body>
-    
-    <nav class="navbar navbar-expand-lg navbar-dark fixed-top" style="background-color: var(--primary-color);">
-        <div class="container-fluid container">
-            <a class="navbar-brand fw-bold" href="#">
-                <i class="bi bi-house-door-fill me-2"></i> Recepción Hotel
-            </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto align-items-center">
-                    <li class="nav-item me-3 d-flex align-items-center">
-                        <i class="bi bi-person-circle text-light me-2 fs-5"></i>
-                        <span class="navbar-text text-white fw-light">
-                            <span id="currentUsername">Invitado</span>
-                            <span class="user-role-badge" id="currentUserRole"></span>
-                        </span>
-                    </li>
-                    <li class="nav-item">
-                        <button class="btn btn-sm btn-outline-light" onclick="logout()">
-                            <i class="bi bi-box-arrow-right me-1"></i> Cerrar Sesión
-                        </button>
-                    </li>
-                </ul>
-            </div>
+  </head>
+  <body>
+    <nav
+      class="navbar navbar-expand-lg navbar-dark fixed-top"
+      style="background-color: var(--primary-color)"
+    >
+      <div class="container-fluid container">
+        <a class="navbar-brand fw-bold" href="#">
+          <i class="bi bi-house-door-fill me-2"></i> Recepción Hotel
+        </a>
+        <button
+          class="navbar-toggler"
+          type="button"
+          data-bs-toggle="collapse"
+          data-bs-target="#navbarNav"
+        >
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+          <ul class="navbar-nav ms-auto align-items-center">
+            <li class="nav-item me-3 d-flex align-items-center">
+              <i class="bi bi-person-circle text-light me-2 fs-5"></i>
+              <span class="navbar-text text-white fw-light">
+                <span id="currentUsername">Invitado</span>
+                <span class="user-role-badge" id="currentUserRole"></span>
+              </span>
+            </li>
+            <li class="nav-item">
+              <button class="btn btn-sm btn-outline-light" onclick="logout()">
+                <i class="bi bi-box-arrow-right me-1"></i> Cerrar Sesión
+              </button>
+            </li>
+          </ul>
         </div>
+      </div>
     </nav>
+
     <div class="container py-4">
-        <header class="bg-white p-4 rounded-4 shadow-lg mb-4 d-flex flex-column flex-md-row justify-content-between align-items-md-center">
-            <h1 class="text-dark fs-3 mb-3 mb-md-0">Gestión de Habitaciones</h1>
-            <div class="stats d-flex flex-wrap gap-3">
-                <div class="stat-card text-center p-2 bg-light rounded-3">
-                    <div class="stat-number fs-4 fw-bold text-dark" id="totalRooms">0</div>
-                    <div class="stat-label fs-6 text-muted">Total</div>
-                </div>
-                <div class="stat-card text-center p-2 bg-light rounded-3">
-                    <div class="stat-number fs-4 fw-bold" style="color: var(--success-color);" id="cleanRooms">0</div>
-                    <div class="stat-label fs-6 text-muted">Limpias</div>
-                </div>
-                <div class="stat-card text-center p-2 bg-light rounded-3">
-                    <div class="stat-number fs-4 fw-bold" style="color: var(--danger-color);" id="dirtyRooms">0</div>
-                    <div class="stat-label fs-6 text-muted">Sucias</div>
-                </div>
-                <div class="stat-card text-center p-2 bg-light rounded-3">
-                    <div class="stat-number fs-4 fw-bold" style="color: var(--secondary-color);" id="occupiedRooms">0</div>
-                    <div class="stat-label fs-6 text-muted">Ocupadas</div>
-                </div>
+      <header
+        class="bg-white p-4 rounded-4 shadow-lg mb-4 d-flex flex-column flex-md-row justify-content-between align-items-md-center"
+      >
+        <h1 class="text-dark fs-3 mb-3 mb-md-0">Gestión de Habitaciones</h1>
+        <div class="stats d-flex flex-wrap gap-3">
+          <div class="stat-card text-center p-2 bg-light rounded-3">
+            <div class="stat-number fs-4 fw-bold text-dark" id="totalRooms">
+              0
             </div>
-            </header>
-
-        <div class="controls bg-white p-4 rounded-4 shadow-lg mb-4 d-flex flex-wrap gap-3 align-items-center">
-            <button class="btn btn-primary d-flex align-items-center" onclick="openAddModal()">
-                <i class="bi bi-plus-square-fill me-1"></i> Nueva Habitación
-            </button>
-            
-            <button class="btn btn-outline-secondary d-flex align-items-center" onclick="openUserModal()">
-                <i class="bi bi-person-add me-1"></i> Registrar Usuario
-            </button>
-
-            <button class="btn btn-outline-warning d-flex align-items-center" 
-            data-bs-toggle="modal" data-bs-target="#reportsModal">
-                <i class="bi bi-exclamation-triangle-fill me-1"></i> Ver Reportes
-            </button>
-
-            <div class="search-box flex-grow-1" style="min-width: 200px;">
-                <input type="text" id="searchInput" class="form-control" placeholder="Buscar habitación..." onkeyup="filterRooms()">
+            <div class="stat-label fs-6 text-muted">Total</div>
+          </div>
+          <div class="stat-card text-center p-2 bg-light rounded-3">
+            <div
+              class="stat-number fs-4 fw-bold"
+              style="color: var(--success-color)"
+              id="cleanRooms"
+            >
+              0
             </div>
-
-            <div class="filter-group d-flex flex-wrap gap-2">
-                <button class="filter-btn btn btn-outline-secondary btn-sm active" data-filter="todas" onclick="setFilter('todas')">Todas</button>
-                <button class="filter-btn btn btn-outline-success btn-sm" data-filter="limpia" onclick="setFilter('limpia')">Limpias</button>
-                <button class="filter-btn btn btn-outline-danger btn-sm" data-filter="sucia" onclick="setFilter('sucia')">Sucias</button>
-                <button class="filter-btn btn btn-outline-info btn-sm" data-filter="ocupada" onclick="setFilter('ocupada')">Ocupadas</button>
-                <button class="filter-btn btn btn-outline-dark btn-sm" data-filter="bloqueada" onclick="setFilter('bloqueada')">Bloqueadas</button>
+            <div class="stat-label fs-6 text-muted">Limpias</div>
+          </div>
+          <div class="stat-card text-center p-2 bg-light rounded-3">
+            <div
+              class="stat-number fs-4 fw-bold"
+              style="color: var(--danger-color)"
+              id="dirtyRooms"
+            >
+              0
             </div>
-        </div>
-
-        <div class="rooms-grid row row-cols-1 row-cols-sm-2 row-cols-lg-3 row-cols-xl-4 g-4" id="roomsGrid">
+            <div class="stat-label fs-6 text-muted">Sucias</div>
+          </div>
+          <div class="stat-card text-center p-2 bg-light rounded-3">
+            <div
+              class="stat-number fs-4 fw-bold"
+              style="color: var(--secondary-color)"
+              id="occupiedRooms"
+            >
+              0
             </div>
-    </div>
-
-    <div class="modal fade" id="roomModal" tabindex="-1" aria-labelledby="modalTitle" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="modalTitle">Nueva Habitación</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" onclick="closeModal()"></button>
-                </div>
-                
-                <div class="modal-body">
-                    <div class="alert alert-success d-none" role="alert" id="alertMsg"></div>
-
-                    <form id="roomForm" onsubmit="saveRoom(event)">
-                        <div class="mb-3">
-                            <label for="roomNumber" class="form-label fw-bold">Número de Habitación</label>
-                            <input type="text" id="roomNumber" class="form-control" required placeholder="Ej: 101">
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="roomType" class="form-label fw-bold">Tipo de Habitación</label>
-                            <select id="roomType" class="form-select" required>
-                                <option value="">Seleccionar...</option>
-                                <option value="Individual">Individual</option>
-                                <option value="Doble">Doble</option>
-                                <option value="Suite">Suite</option>
-                                <option value="Deluxe">Deluxe</option>
-                            </select>
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="roomFloor" class="form-label fw-bold">Piso</label>
-                            <input type="number" id="roomFloor" class="form-control" required placeholder="Ej: 1">
-                        </div>
-
-                        <div class="mb-4">
-                            <label for="roomStatus" class="form-label fw-bold">Estado</label>
-                            <select id="roomStatus" class="form-select" required>
-                                <option value="limpia">Limpia</option>
-                                <option value="sucia">Sucia</option>
-                                <option value="ocupada">Ocupada</option>
-                                <option value="bloqueada">Bloqueada</option>
-                            </select>
-                        </div>
-
-                        <button type="submit" class="btn btn-primary w-100">
-                            Guardar
-                        </button>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="modal fade" id="userModal" tabindex="-1" aria-labelledby="userModalTitle" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="userModalTitle">
-                    <i class="bi bi-person-fill-gear me-1"></i> Registrar Nuevo Usuario
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            
-            <div class="modal-body">
-
-                <form id="userForm" onsubmit="registerUser(event)">
-                    
-                    <div class="mb-3">
-                        <label for="userName" class="form-label fw-bold">Nombre de Usuario</label>
-                        <input type="text" id="userName" class="form-control" required placeholder="Ej: ana.camarera">
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="userEmail" class="form-label fw-bold">Email</label>
-                        <input type="email" id="userEmail" class="form-control" required placeholder="Ej: ana@hotel.com">
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="userPassword" class="form-label fw-bold">Contraseña</label>
-                        <input type="password" id="userPassword" class="form-control" required>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="userRole" class="form-label fw-bold">Rol</label>
-                        <select id="userRole" class="form-select" required>
-                            <option value="">Seleccionar...</option>
-                            <option value="RECEPCIONISTA">RECEPCIONISTA</option>
-                            <option value="CAMARERA">CAMARERA</option>
-                            <option value="GERENTE">GERENTE</option>
-                        </select>
-                    </div>
-
-                    <!-- Aquí aparece el select si es CAMARERA -->
-                     <!-- Porque tampoco se porque hay gerente wtf-->
-                    <div class="mb-3 d-none" id="roomAssignContainer">
-                        <label for="assignRoomToUser" class="form-label fw-bold">Asignar Habitación</label>
-                        <select id="assignRoomToUser" class="form-select">
-                            <option value="">Seleccionar habitación...</option>
-                        </select>
-                    </div>
-
-                    <button type="submit" class="btn btn-primary w-100">
-                        <i class="bi bi-save me-1"></i> Confirmar Registro
-                    </button>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
-
-
-<div class="modal fade" id="assignModal" tabindex="-1" aria-labelledby="assignModalTitle" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="assignModalTitle">
-                    <i class="bi bi-person-check-fill me-1"></i> Asignar Camarera
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-
-            <div class="modal-body">
-                <div class="alert alert-success d-none" id="assignAlertMsg"></div>
-
-                <form id="assignForm" onsubmit="assignChambermaid(event)">
-                    <input type="hidden" id="assignRoomId">
-
-                    <div class="mb-3">
-                        <label class="fw-bold">Habitación</label>
-                        <input type="text" id="assignRoomNumber" class="form-control" readonly>
-                    </div>
-
-                    <div class="mb-4">
-                        <label class="fw-bold">Camarera</label>
-                        <select id="camareraSelect" class="form-select" required>
-                            <!-- Se llena dinámicamente -->
-                        </select>
-                    </div>
-
-                    <button class="btn btn-primary w-100">
-                        <i class="bi bi-check2-circle me-1"></i> Confirmar Asignación
-                    </button>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="modal fade" id="reportsModal" tabindex="-1" aria-labelledby="reportsModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-lg modal-dialog-scrollable">
-    <div class="modal-content">
-      <div class="modal-header bg-warning text-dark">
-        <h5 class="modal-title" id="reportsModalLabel">
-          <i class="bi bi-exclamation-triangle-fill me-1"></i> Reportes de Siniestros
-        </h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-
-        <!-- Tarjeta de ejemplo 1 -->
-        <div class="card shadow-sm mb-3">
-          <div class="card-body">
-            <h5 class="card-title fw-bold">Fuga de Agua</h5>
-            <p class="card-text mb-1"><strong>Descripción:</strong> Humedad en la pared cerca del baño.</p>
-            <p class="card-text mb-1"><strong>Camarera:</strong> María Pérez</p>
-            <p class="card-text"><strong>Habitación:</strong> 203</p>
-            <img src="https://via.placeholder.com/400x250" class="img-fluid rounded border" alt="Foto del reporte">
+            <div class="stat-label fs-6 text-muted">Ocupadas</div>
           </div>
         </div>
-        <!-- Tarjeta de ejemplo 2 -->
-        <div class="card shadow-sm mb-3">
-          <div class="card-body">
-            <h5 class="card-title fw-bold">Cristal roto</h5>
-            <p class="card-text mb-1"><strong>Descripción:</strong> Ventana con un golpe en la esquina.</p>
-            <p class="card-text mb-1"><strong>Camarera:</strong> Alejandra Gómez</p>
-            <p class="card-text"><strong>Habitación:</strong> 115</p>
-            <img src="https://via.placeholder.com/400x250" class="img-fluid rounded border" alt="Foto del reporte">
+      </header>
+
+      <div
+        class="controls bg-white p-4 rounded-4 shadow-lg mb-4 d-flex flex-wrap gap-3 align-items-center"
+      >
+        <button
+          class="btn btn-primary d-flex align-items-center"
+          onclick="openAddModal()"
+        >
+          <i class="bi bi-plus-square-fill me-1"></i> Nueva Habitación
+        </button>
+
+        <button
+          class="btn btn-outline-secondary d-flex align-items-center"
+          onclick="openUserModal()"
+        >
+          <i class="bi bi-person-add me-1"></i> Registrar Usuario
+        </button>
+
+        <button
+          class="btn btn-outline-info d-flex align-items-center"
+          onclick="openUsersListModal()"
+        >
+          <i class="bi bi-people-fill me-1"></i> Ver Usuarios
+        </button>
+
+        <button
+          class="btn btn-outline-warning d-flex align-items-center"
+          onclick="openReportsModal()"
+        >
+          <i class="bi bi-exclamation-triangle-fill me-1"></i> Ver Reportes
+        </button>
+
+        <div class="search-box flex-grow-1" style="min-width: 200px">
+          <input
+            type="text"
+            id="searchInput"
+            class="form-control"
+            placeholder="Buscar habitación..."
+            onkeyup="filterRooms()"
+          />
+        </div>
+
+        <div class="filter-group d-flex flex-wrap gap-2">
+          <button
+            class="filter-btn btn btn-outline-secondary btn-sm active"
+            data-filter="todas"
+            onclick="setFilter('todas')"
+          >
+            Todas
+          </button>
+          <button
+            class="filter-btn btn btn-outline-success btn-sm"
+            data-filter="limpia"
+            onclick="setFilter('limpia')"
+          >
+            Limpias
+          </button>
+          <button
+            class="filter-btn btn btn-outline-danger btn-sm"
+            data-filter="sucia"
+            onclick="setFilter('sucia')"
+          >
+            Sucias
+          </button>
+          <button
+            class="filter-btn btn btn-outline-info btn-sm"
+            data-filter="ocupada"
+            onclick="setFilter('ocupada')"
+          >
+            Ocupadas
+          </button>
+          <button
+            class="filter-btn btn btn-outline-dark btn-sm"
+            data-filter="bloqueada"
+            onclick="setFilter('bloqueada')"
+          >
+            Bloqueadas
+          </button>
+        </div>
+      </div>
+
+      <div
+        class="rooms-grid row row-cols-1 row-cols-sm-2 row-cols-lg-3 row-cols-xl-4 g-4"
+        id="roomsGrid"
+      ></div>
+    </div>
+
+    <!-- Modal: Nueva/Editar Habitación -->
+    <div class="modal fade" id="roomModal" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="modalTitle">Nueva Habitación</h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              onclick="closeModal()"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <div
+              class="alert alert-success d-none"
+              role="alert"
+              id="alertMsg"
+            ></div>
+            <form id="roomForm" onsubmit="saveRoom(event)">
+              <div class="mb-3">
+                <label for="roomNumber" class="form-label fw-bold"
+                  >Número de Habitación</label
+                >
+                <input
+                  type="text"
+                  id="roomNumber"
+                  class="form-control"
+                  required
+                  placeholder="Ej: 101"
+                />
+              </div>
+              <div class="mb-4">
+                <label for="roomStatus" class="form-label fw-bold"
+                  >Estado</label
+                >
+                <select id="roomStatus" class="form-select" required>
+                  <option value="limpia">Limpia</option>
+                  <option value="sucia">Sucia</option>
+                  <option value="ocupada">Ocupada</option>
+                  <option value="bloqueada">Bloqueada</option>
+                </select>
+              </div>
+              <button type="submit" class="btn btn-primary w-100">
+                Guardar
+              </button>
+            </form>
           </div>
         </div>
       </div>
-      <!-- Footer -->
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-      </div>
-
     </div>
-  </div>
-</div>
+
+    <!-- Modal: Registrar Usuario -->
+    <div class="modal fade" id="userModal" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">
+              <i class="bi bi-person-fill-gear me-1"></i> Registrar Nuevo
+              Usuario
+            </h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <form id="userForm" onsubmit="registerUser(event)">
+              <div class="mb-3">
+                <label for="userName" class="form-label fw-bold"
+                  >Nombre de Usuario</label
+                >
+                <input
+                  type="text"
+                  id="userName"
+                  class="form-control"
+                  required
+                  placeholder="Ej: ana.camarera"
+                />
+              </div>
+              <div class="mb-3">
+                <label for="userEmail" class="form-label fw-bold">Email</label>
+                <input
+                  type="email"
+                  id="userEmail"
+                  class="form-control"
+                  required
+                  placeholder="Ej: ana@hotel.com"
+                />
+              </div>
+              <div class="mb-3">
+                <label for="userPassword" class="form-label fw-bold"
+                  >Contraseña</label
+                >
+                <input
+                  type="password"
+                  id="userPassword"
+                  class="form-control"
+                  required
+                />
+              </div>
+              <div class="mb-4">
+                <label for="userRole" class="form-label fw-bold">Rol</label>
+                <select id="userRole" class="form-select" required>
+                  <option value="">Seleccionar...</option>
+                  <option value="RECEPCION">RECEPCION</option>
+                  <option value="CAMARERA">CAMARERA</option>
+                </select>
+              </div>
+              <button type="submit" class="btn btn-primary w-100">
+                <i class="bi bi-save me-1"></i> Confirmar Registro
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Asignar Camarera -->
+    <div class="modal fade" id="assignModal" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">
+              <i class="bi bi-person-check-fill me-1"></i> Asignar Camarera
+            </h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <div class="alert alert-success d-none" id="assignAlertMsg"></div>
+            <form id="assignForm" onsubmit="assignChambermaid(event)">
+              <input type="hidden" id="assignRoomId" />
+              <div class="mb-3">
+                <label class="fw-bold">Habitación</label>
+                <input
+                  type="text"
+                  id="assignRoomNumber"
+                  class="form-control"
+                  readonly
+                />
+              </div>
+              <div class="mb-4">
+                <label class="fw-bold">Camarera</label>
+                <select id="camareraSelect" class="form-select" required>
+                  <option value="">Seleccione una camarera...</option>
+                </select>
+              </div>
+              <button class="btn btn-primary w-100">
+                <i class="bi bi-check2-circle me-1"></i> Confirmar Asignación
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Ver Reportes -->
+    <div class="modal fade" id="reportsModal" tabindex="-1">
+      <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+          <div class="modal-header bg-warning text-dark">
+            <h5 class="modal-title">
+              <i class="bi bi-exclamation-triangle-fill me-1"></i> Reportes de
+              Siniestros
+            </h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <!-- Se llena dinámicamente con JavaScript -->
+            <div class="text-center">
+              <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Cargando...</span>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              data-bs-dismiss="modal"
+            >
+              Cerrar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Ver Usuarios -->
+    <div class="modal fade" id="usersListModal" tabindex="-1">
+      <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+          <div class="modal-header bg-info text-white">
+            <h5 class="modal-title">
+              <i class="bi bi-people-fill me-2"></i> Lista de Usuarios
+            </h5>
+            <button
+              type="button"
+              class="btn-close btn-close-white"
+              data-bs-dismiss="modal"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <!-- Filtros de usuario -->
+            <div class="mb-3 d-flex gap-2 flex-wrap">
+              <button
+                class="btn btn-sm btn-outline-secondary active"
+                data-user-filter="todos"
+                onclick="filterUsers('todos', this)"
+              >
+                <i class="bi bi-grid-3x3-gap-fill me-1"></i> Todos
+              </button>
+              <button
+                class="btn btn-sm btn-outline-primary"
+                data-user-filter="CAMARERA"
+                onclick="filterUsers('CAMARERA', this)"
+              >
+                <i class="bi bi-person-workspace me-1"></i> Camareras
+              </button>
+              <button
+                class="btn btn-sm btn-outline-success"
+                data-user-filter="RECEPCION"
+                onclick="filterUsers('RECEPCION', this)"
+              >
+                <i class="bi bi-person-badge me-1"></i> Recepción
+              </button>
+            </div>
+
+            <!-- Tabla de usuarios -->
+            <div class="table-responsive">
+              <table class="table table-hover table-striped">
+                <thead class="table-dark">
+                  <tr>
+                    <th><i class="bi bi-person me-1"></i> Usuario</th>
+                    <th><i class="bi bi-envelope me-1"></i> Email</th>
+                    <th class="text-center">
+                      <i class="bi bi-award me-1"></i> Rol
+                    </th>
+                    <th class="text-center">
+                      <i class="bi bi-gear me-1"></i> Acciones
+                    </th>
+                  </tr>
+                </thead>
+                <tbody id="usersTableBody">
+                  <!-- Se llena dinámicamente con JavaScript -->
+                  <tr>
+                    <td colspan="4" class="text-center">
+                      <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Cargando...</span>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              data-bs-dismiss="modal"
+            >
+              <i class="bi bi-x-circle me-1"></i> Cerrar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Editar Usuario -->
+    <div class="modal fade" id="editUserModal" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header bg-primary text-white">
+            <h5 class="modal-title">
+              <i class="bi bi-pencil-square me-1"></i> Editar Usuario
+            </h5>
+            <button
+              type="button"
+              class="btn-close btn-close-white"
+              data-bs-dismiss="modal"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <div class="alert alert-success d-none" id="editUserAlertMsg"></div>
+            <form id="editUserForm" onsubmit="updateUser(event)">
+              <input type="hidden" id="editUserId" />
+
+              <div class="mb-3">
+                <label for="editUserName" class="form-label fw-bold"
+                  >Nombre de Usuario</label
+                >
+                <input
+                  type="text"
+                  id="editUserName"
+                  class="form-control"
+                  required
+                />
+              </div>
+
+              <div class="mb-3">
+                <label for="editUserEmail" class="form-label fw-bold"
+                  >Email</label
+                >
+                <input
+                  type="email"
+                  id="editUserEmail"
+                  class="form-control"
+                  required
+                />
+              </div>
+
+              <div class="mb-3">
+                <label for="editUserPassword" class="form-label fw-bold">
+                  Nueva Contraseña
+                  <small class="text-muted"
+                    >(dejar en blanco para no cambiar)</small
+                  >
+                </label>
+                <input
+                  type="password"
+                  id="editUserPassword"
+                  class="form-control"
+                />
+              </div>
+
+              <div class="mb-4">
+                <label for="editUserRole" class="form-label fw-bold">Rol</label>
+                <select id="editUserRole" class="form-select" required>
+                  <option value="RECEPCION">RECEPCION</option>
+                  <option value="CAMARERA">CAMARERA</option>
+                </select>
+              </div>
+
+              <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary flex-grow-1">
+                  <i class="bi bi-save me-1"></i> Guardar Cambios
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-secondary"
+                  onclick="closeEditUserModal()"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <script src="../assets/js/bootstrap.bundle.min.js"></script>
     <script src="../app.js"></script>
     <script src="../assets/js/recepcion-api.js"></script>
-</body>
+
+    <script>
+      // Verificar que Bootstrap está cargado
+      if (typeof bootstrap === "undefined") {
+        console.error("❌ Bootstrap no está cargado correctamente");
+      } else {
+        console.log(
+          "✅ Bootstrap cargado correctamente - Versión:",
+          bootstrap.Modal.VERSION || "desconocida"
+        );
+      }
+    </script>
+  </body>
 </html>

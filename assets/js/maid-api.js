@@ -6,6 +6,8 @@ let currentFilter = 'asignadas';
 let selectedRoom = null;
 let currentUser = null;
 let authToken = null;
+let html5QrcodeScanner = null;
+let scannedRoomFromQR = null;
 
 // ==================== AUTENTICACIÓN ====================
 function initializeAuth() {
@@ -53,6 +55,244 @@ function logout() {
     currentUser = null;
     window.alert('Sesión cerrada.');
     window.location.href = '../index.html';
+}
+
+// ==================== ESCÁNER QR ====================
+function openQRScanner() {
+    const modalElement = document.getElementById('qrScannerModal');
+    const qrModal = new bootstrap.Modal(modalElement);
+    qrModal.show();
+
+    // Iniciar escáner después de que el modal se muestre
+    setTimeout(() => {
+        startQRScanner();
+    }, 500);
+}
+
+function startQRScanner() {
+    const qrReaderElement = document.getElementById('qr-reader');
+    
+    if (!qrReaderElement) {
+        console.error('Elemento qr-reader no encontrado');
+        return;
+    }
+
+    html5QrcodeScanner = new Html5Qrcode("qr-reader");
+    
+    const config = { 
+        fps: 10, 
+        qrbox: { width: 250, height: 250 },
+        aspectRatio: 1.0
+    };
+
+    html5QrcodeScanner.start(
+        { facingMode: "environment" },
+        config,
+        onScanSuccess,
+        onScanFailure
+    ).catch(err => {
+        console.error('Error al iniciar escáner:', err);
+        showNotification('Error al acceder a la cámara', 'danger');
+    });
+}
+
+async function onScanSuccess(decodedText, decodedResult) {
+    
+    // Detener el escáner
+    if (html5QrcodeScanner) {
+        html5QrcodeScanner.stop().then(() => {
+        }).catch(err => {
+            console.error('Error al detener escáner:', err);
+        });
+    }
+
+    // Cerrar modal de escáner
+    const scannerModalElement = document.getElementById('qrScannerModal');
+    const scannerModalInstance = bootstrap.Modal.getInstance(scannerModalElement);
+    if (scannerModalInstance) {
+        scannerModalInstance.hide();
+    }
+
+    // Buscar habitación por ID
+    await loadRoomByQR(decodedText);
+}
+
+function onScanFailure(error) {
+    // No hacer nada en caso de fallo (es normal mientras se escanea)
+    // console.warn('Error de escaneo:', error);
+}
+
+function closeQRScanner() {
+    if (html5QrcodeScanner) {
+        html5QrcodeScanner.stop().then(() => {
+            html5QrcodeScanner = null;
+        }).catch(err => {
+            console.error('Error al cerrar escáner:', err);
+        });
+    }
+}
+
+async function loadRoomByQR(roomId) {
+    try {
+        const headers = {
+            'Content-Type': 'application/json'
+        };
+        
+        if (authToken) {
+            headers['Authorization'] = `Bearer ${authToken}`;
+        }
+
+        const response = await fetch(`${API_URL}/habitaciones/${roomId}`, {
+            method: 'GET',
+            headers: headers
+        });
+        
+        const data = await response.json();
+
+        if (data.error) {
+            showNotification('Habitación no encontrada', 'danger');
+            return;
+        }
+
+        const room = data.data;
+        scannedRoomFromQR = room;
+        
+        // Abrir modal con la información de la habitación
+        openQRRoomModal(room);
+        
+    } catch (error) {
+        console.error('Error al cargar habitación:', error);
+        showNotification('Error al cargar la habitación', 'danger');
+    }
+}
+
+function openQRRoomModal(room) {
+    if (room.estado.toLowerCase() === 'bloqueada') {
+        window.alert('Esta habitación está bloqueada por siniestro/avería. Debe ser revisada por mantenimiento.');
+        scannedRoomFromQR = null;
+        return;
+    }
+
+    document.getElementById('qrModalRoomNumber').textContent = room.numero;
+
+    const statusTexts = {
+        'LIMPIA': 'Limpia',
+        'SUCIA': 'Pendiente de limpieza',
+        'OCUPADA': 'Ocupada',
+    };
+
+    document.getElementById('qrModalRoomStatus').textContent = statusTexts[room.estado] || room.estado;
+
+    // Deshabilitar botón de "Marcar como Limpia" si ya está limpia
+    const markCleanBtn = document.querySelector('#roomQRModal .btn-success');
+    if (room.estado.toUpperCase() === 'LIMPIA') {
+        markCleanBtn.disabled = true;
+        markCleanBtn.innerHTML = '<i class="bi bi-check-circle-fill me-2"></i> Ya está Limpia';
+        markCleanBtn.classList.add('opacity-50');
+    } else {
+        markCleanBtn.disabled = false;
+        markCleanBtn.innerHTML = '<i class="bi bi-check-circle-fill me-2"></i> Marcar como Limpia';
+        markCleanBtn.classList.remove('opacity-50');
+    }
+
+    const roomQRModal = new bootstrap.Modal(document.getElementById('roomQRModal'));
+    roomQRModal.show();
+}
+
+function closeQRRoomModal() {
+    const modalElement = document.getElementById('roomQRModal');
+    const modalInstance = bootstrap.Modal.getInstance(modalElement);
+
+    if (modalInstance) {
+        modalInstance.hide();
+    }
+
+    scannedRoomFromQR = null;
+}
+
+async function markCleanFromQR() {
+    if (!scannedRoomFromQR) return;
+
+    try {
+        const headers = {
+            'Content-Type': 'application/json'
+        };
+        
+        if (authToken) {
+            headers['Authorization'] = `Bearer ${authToken}`;
+        }
+
+        const response = await fetch(`${API_URL}/habitaciones/marcar-limpia/${scannedRoomFromQR.id}`, {
+            method: 'PUT',
+            headers: headers
+        });
+
+        const data = await response.json();
+
+        if (data.error) {
+            window.alert(data.message);
+            return;
+        }
+
+        showNotification(`✓ Habitación ${scannedRoomFromQR.numero} marcada como limpia`, 'success');
+        closeQRRoomModal();
+        await loadRooms();
+    } catch (error) {
+        console.error('Error:', error);
+        window.alert('Error al marcar la habitación como limpia');
+    }
+}
+
+function reportSiniestroFromQR() {
+    if (!scannedRoomFromQR) {
+        console.error('No hay habitación escaneada');
+        return;
+    }
+
+
+    // Guardar el ID de la habitación antes de cerrar
+    const roomIdToReport = scannedRoomFromQR.id;
+    const roomNumberToReport = scannedRoomFromQR.numero;
+
+    // Cerrar modal QR
+    closeQRRoomModal();
+
+    // Cambiar a la pestaña de siniestros
+    const tabs = document.querySelectorAll('.tab');
+    tabs.forEach(t => t.classList.remove('active'));
+    tabs[1].classList.add('active'); // Tab de siniestros
+    
+    document.getElementById('habitaciones').classList.add('hidden');
+    document.getElementById('siniestros').classList.remove('hidden');
+
+    // Preseleccionar la habitación en el select
+    setTimeout(() => {
+        const siniestroRoomSelect = document.getElementById('siniestroRoom');
+
+        
+        // Intentar seleccionar por ID
+        siniestroRoomSelect.value = roomIdToReport;
+        
+        
+        if (siniestroRoomSelect.value === roomIdToReport) {
+            showNotification(`Habitación ${roomNumberToReport} seleccionada para reporte`, 'info');
+        } else {
+            console.error('❌ No se pudo seleccionar la habitación');
+            showNotification(`Seleccione manualmente la habitación ${roomNumberToReport}`, 'warning');
+        }
+        
+        // Hacer scroll al select para que el usuario lo vea
+        siniestroRoomSelect.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        
+        // Highlight del select
+        siniestroRoomSelect.classList.add('border-primary');
+        siniestroRoomSelect.style.borderWidth = '3px';
+        setTimeout(() => {
+            siniestroRoomSelect.classList.remove('border-primary');
+            siniestroRoomSelect.style.borderWidth = '';
+        }, 2000);
+        
+    }, 500);
 }
 
 // ==================== HABITACIONES - API ====================
@@ -380,6 +620,18 @@ function openRoomModal(room) {
 
     document.getElementById('modalRoomStatus').textContent = statusTexts[room.estado] || room.estado;
 
+    // Deshabilitar botón de "Marcar como Limpia" si ya está limpia
+    const markCleanBtn = document.querySelector('#roomModal .btn-success');
+    if (room.estado.toUpperCase() === 'LIMPIA') {
+        markCleanBtn.disabled = true;
+        markCleanBtn.innerHTML = '<i class="bi bi-check-lg me-1"></i> Ya está Limpia';
+        markCleanBtn.classList.add('opacity-50');
+    } else {
+        markCleanBtn.disabled = false;
+        markCleanBtn.innerHTML = '<i class="bi bi-check-lg me-1"></i> Marcar como Limpia';
+        markCleanBtn.classList.remove('opacity-50');
+    }
+
     const roomModal = new bootstrap.Modal(document.getElementById('roomModal'));
     roomModal.show();
 }
@@ -417,7 +669,7 @@ function showNotification(message, type = 'success') {
     const bgColors = {
         'success': 'var(--success-color)',
         'danger': 'var(--danger-color)',
-        'warning': 'var(--warning-color)',
+        'warning': '#f59e0b',
         'info': 'var(--secondary-color)'
     };
 
