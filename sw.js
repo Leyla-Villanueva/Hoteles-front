@@ -22,6 +22,9 @@ const ASSETS = [
     "./pages/maid.html",
     "./pages/reception.html",
     "./pages/offline.html"
+
+    "https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"
+
 ];
 
 
@@ -200,12 +203,43 @@ async function sendPendingRequests() {
 }
 
 
-
 self.addEventListener("fetch", event => {
     const request = event.request;
     const url = new URL(request.url);
 
 
+    // 👇 CACHEAR CDNs EXTERNOS (unpkg, cdnjs, jsdelivr, etc.)
+    if (url.origin !== location.origin && 
+        (url.hostname.includes('unpkg.com') || 
+         url.hostname.includes('cdn') || 
+         url.hostname.includes('cloudflare'))) {
+        
+        event.respondWith(
+            caches.match(request).then(cacheRes => {
+                if (cacheRes) {
+                    console.log("📦 CDN desde cache:", url.href);
+                    return cacheRes;
+                }
+                
+                return fetch(request).then(fetchRes => {
+                    // Solo cachear respuestas exitosas
+                    if (fetchRes && fetchRes.status === 200) {
+                        return caches.open(CACHE_NAME).then(cache => {
+                            cache.put(request, fetchRes.clone());
+                            console.log("✅ CDN guardado en cache:", url.href);
+                            return fetchRes;
+                        });
+                    }
+                    return fetchRes;
+                }).catch(() => {
+                    console.warn("❌ CDN no disponible offline:", url.href);
+                    return cacheRes; // Intenta devolver cache aunque sea null
+                });
+            })
+        );
+        return;
+    }
+    
     if (url.pathname.includes("/api") || url.pathname.includes("/maid") || url.pathname.includes("/recepcion")) {
         if (["POST", "PUT", "DELETE"].includes(request.method)) {
             const requestClone = request.clone(); 
