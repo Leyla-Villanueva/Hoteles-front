@@ -3,25 +3,25 @@ const API_CACHE = "hotel-api-cache-v1";
 
 // Archivos estáticos
 const ASSETS = [
-    "/",  
-    "/index.html",
-    "/manifest.json",
+    "./",  
+    "./index.html",
+    "./manifest.json",
 
-    "/assets/css/bootstrap.min.css",
-    "/assets/css/bootstrap-icons.min.css",
-    "/assets/css/styles.css",
+    "./assets/css/bootstrap.min.css",
+    "./assets/css/bootstrap-icons.min.css",
+    "./assets/css/styles.css",
 
-    "/assets/js/bootstrap.bundle.min.js",
-    "/assets/js/auth.controller.js",
-    "/assets/js/maid-api.js",
-    "/assets/js/recepcion-api.js",
+    "./assets/js/bootstrap.bundle.min.js",
+    "./assets/js/auth.controller.js",
+    "./assets/js/maid-api.js",
+    "./assets/js/recepcion-api.js",
 
-    "/assets/icons/icon-192.png",
-    "/assets/icons/icon-512.png",
+    "./assets/icons/icon-192.png",
+    "./assets/icons/icon-512.png",
 
-    "/pages/maid.html",
-    "/pages/reception.html",
-    "/pages/offline.html"
+    "./pages/maid.html",
+    "./pages/reception.html",
+    "./pages/offline.html"
 ];
 
 
