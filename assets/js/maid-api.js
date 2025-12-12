@@ -96,10 +96,12 @@ function startQRScanner() {
 }
 
 async function onScanSuccess(decodedText, decodedResult) {
+    console.log('📱 QR escaneado:', decodedText);
     
     // Detener el escáner
     if (html5QrcodeScanner) {
         html5QrcodeScanner.stop().then(() => {
+            console.log('✅ Escáner detenido');
         }).catch(err => {
             console.error('Error al detener escáner:', err);
         });
@@ -131,12 +133,61 @@ function closeQRScanner() {
     }
 }
 
-async function loadRoomByQR(roomId) {
+async function loadRoomByQR(qrData) {
     try {
+        let roomId = null;
+        let roomFromQR = null;
+
+        // Intenta parsear el QR como JSON primero
+        try {
+            roomFromQR = JSON.parse(qrData);
+            console.log('✅ QR parseado como JSON:', roomFromQR);
+            
+            // Extraer el ID de diferentes formas posibles
+            roomId = roomFromQR.id || roomFromQR.roomId || roomFromQR.habitacionId;
+            
+            // Si el QR contiene todos los datos de la habitación, usarlos directamente
+            if (roomFromQR.numero && roomFromQR.estado) {
+                console.log('✅ Usando datos del QR directamente');
+                scannedRoomFromQR = roomFromQR;
+                openQRRoomModal(roomFromQR);
+                return;
+            }
+        } catch (e) {
+            // Si no es JSON, asumir que es el ID directo
+            console.log('ℹ️ QR no es JSON, usando como ID directo');
+            roomId = qrData;
+        }
+
+        if (!roomId) {
+            showNotification('QR inválido: no contiene ID de habitación', 'danger');
+            return;
+        }
+
+        console.log('🔍 Buscando habitación con ID:', roomId);
+
+        // ✅ PRIMERO: Buscar en el array local de habitaciones (funciona offline)
+        const localRoom = rooms.find(r => String(r.id) === String(roomId));
+        
+        if (localRoom) {
+            console.log('✅ Habitación encontrada localmente:', localRoom);
+            scannedRoomFromQR = localRoom;
+            openQRRoomModal(localRoom);
+            return;
+        }
+
+        // ❌ Si no está en local y estamos OFFLINE, mostrar error
+        if (!navigator.onLine) {
+            console.warn('⚠️ Sin conexión y habitación no encontrada localmente');
+            showNotification('Sin conexión. Recarga la página con internet para ver todas las habitaciones.', 'warning');
+            return;
+        }
+
+        // 🌐 Si no está en local y HAY INTERNET, buscar en el servidor
+        console.log('🌐 Buscando en servidor...');
         const headers = {
             'Content-Type': 'application/json',
             'ngrok-skip-browser-warning': 'true'
-
         };
         
         if (authToken) {
@@ -148,26 +199,44 @@ async function loadRoomByQR(roomId) {
             headers: headers
         });
         
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
         const data = await response.json();
 
         if (data.error) {
-            showNotification('Habitación no encontrada', 'danger');
+            console.error('❌ Error del servidor:', data.message);
+            showNotification('Habitación no encontrada en el servidor', 'danger');
             return;
         }
 
         const room = data.data;
+        console.log('✅ Habitación encontrada en servidor:', room);
         scannedRoomFromQR = room;
         
         // Abrir modal con la información de la habitación
         openQRRoomModal(room);
         
     } catch (error) {
-        console.error('Error al cargar habitación:', error);
-        showNotification('Error al cargar la habitación', 'danger');
+        console.error('❌ Error al cargar habitación:', error);
+        
+        // Si el error es por falta de conexión, mostrar mensaje específico
+        if (!navigator.onLine || error.message.includes('Failed to fetch')) {
+            showNotification('Sin conexión. No se pudo verificar la habitación.', 'warning');
+        } else {
+            showNotification('Error al cargar los datos de la habitación', 'danger');
+        }
     }
 }
 
 function openQRRoomModal(room) {
+    if (!room) {
+        console.error('❌ No hay datos de habitación para mostrar');
+        showNotification('Error: datos de habitación no disponibles', 'danger');
+        return;
+    }
+
     if (room.estado.toLowerCase() === 'bloqueada') {
         window.alert('Esta habitación está bloqueada por siniestro/avería. Debe ser revisada por mantenimiento.');
         scannedRoomFromQR = null;
@@ -180,13 +249,15 @@ function openQRRoomModal(room) {
         'LIMPIA': 'Limpia',
         'SUCIA': 'Pendiente de limpieza',
         'OCUPADA': 'Ocupada',
+        'BLOQUEADA': 'Bloqueada'
     };
 
-    document.getElementById('qrModalRoomStatus').textContent = statusTexts[room.estado] || room.estado;
+    const estado = room.estado.toUpperCase();
+    document.getElementById('qrModalRoomStatus').textContent = statusTexts[estado] || room.estado;
 
     // Deshabilitar botón de "Marcar como Limpia" si ya está limpia
     const markCleanBtn = document.querySelector('#roomQRModal .btn-success');
-    if (room.estado.toUpperCase() === 'LIMPIA') {
+    if (estado === 'LIMPIA') {
         markCleanBtn.disabled = true;
         markCleanBtn.innerHTML = '<i class="bi bi-check-circle-fill me-2"></i> Ya está Limpia';
         markCleanBtn.classList.add('opacity-50');
@@ -196,7 +267,13 @@ function openQRRoomModal(room) {
         markCleanBtn.classList.remove('opacity-50');
     }
 
-    const roomQRModal = new bootstrap.Modal(document.getElementById('roomQRModal'));
+    const modalElement = document.getElementById('roomQRModal');
+    if (!modalElement) {
+        console.error('❌ No se encontró el modal roomQRModal');
+        return;
+    }
+
+    const roomQRModal = new bootstrap.Modal(modalElement);
     roomQRModal.show();
 }
 
