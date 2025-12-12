@@ -426,7 +426,6 @@ function renderReportes() {
             minute: '2-digit'
         });
 
-        imagenUrl = '';
 
         const BASE = "https://trucklingly-misty-rebeca.ngrok-free.dev";
 
