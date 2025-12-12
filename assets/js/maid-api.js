@@ -505,7 +505,7 @@ async function markClean() {
 
         // Normal cuando sí hay red
         if (data.error) {
-            window.alert(data.message);
+            showNotification(data.message, 'danger');
             return;
         }
 
@@ -516,41 +516,35 @@ async function markClean() {
     } catch (error) {
         // Sin internet → el fetch revienta → caemos aquí
         console.error('Error OFFLINE:', error);
+        
         // Guardar la petición en IndexedDB desde la página (cliente) para reenviar con token fresco
-        try {
-            await savePendingRequestClient({
-                url: `${API_URL}/habitaciones/marcar-limpia/${selectedRoom.id}`,
-                method: 'PUT',
-                body: null,
-                meta: { roomNumber: selectedRoom.numero }
+        await savePendingRequestClient({
+            url: `${API_URL}/habitaciones/marcar-limpia/${selectedRoom.id}`,
+            method: 'PUT',
+            body: null,
+            meta: { roomNumber: selectedRoom.numero }
+        });
+
+        showNotification(
+            `⚠ No hay conexión. El cambio se guardó localmente y se sincronizará al volver a estar en línea.`,
+            'warning'
+        );
+
+        // Actualiza la UI localmente para que el usuario vea el cambio
+        selectedRoom.estado = 'limpia';
+        renderRooms();
+        closeModal();
+
+        // Intentar registrar Background Sync y también ejecutar reenvío desde cliente al volver online
+        if ('serviceWorker' in navigator && 'SyncManager' in window) {
+            navigator.serviceWorker.ready.then(reg => {
+                reg.sync.register("sync-pending-requests")
+                    .then(() => console.log("🔄 Background Sync registrado"))
+                    .catch(err => console.warn("⚠ No se pudo registrar Sync", err));
             });
-
-            showNotification(
-                `⚠ No hay conexión. El cambio se guardó localmente y se sincronizará al volver a estar en línea.`,
-                'warning'
-            );
-
-            // Actualiza la UI localmente para que el usuario vea el cambio
-            selectedRoom.estado = 'limpia';
-            renderRooms();
-            closeModal();
-
-            // Intentar registrar Background Sync y también ejecutar reenvío desde cliente al volver online
-            if ('serviceWorker' in navigator && 'SyncManager' in window) {
-                navigator.serviceWorker.ready.then(reg => {
-                    reg.sync.register("sync-pending-requests")
-                        .then(() => console.log("🔄 Background Sync registrado"))
-                        .catch(err => console.warn("⚠ No se pudo registrar Sync", err));
-                });
-            }
-
-        } catch (e) {
-            console.error('No se pudo guardar petición offline en IDB:', e);
-            showNotification('⚠ No hay conexión y no se pudo guardar el cambio localmente', 'danger');
         }
     }
 }
-
 
 // ==================== REPORTES - API ====================
 async function submitSiniestro() {
