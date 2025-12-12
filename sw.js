@@ -1,4 +1,4 @@
-const CACHE_NAME = "hotel-pwa-v3";
+const CACHE_NAME = "hotel-pwa-v4";
 const API_CACHE = "hotel-api-cache-v1";
 
 // Archivos estáticos
