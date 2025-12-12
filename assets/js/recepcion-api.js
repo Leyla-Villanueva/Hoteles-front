@@ -428,7 +428,7 @@ function renderReportes() {
 
         imagenUrl = `${API_URL}${reporte.imagenUrl}`;
 
-        console.log(imageUrl);
+        console.log(imagenUrl);
 
         return `
             <div class="card shadow-sm mb-3">
