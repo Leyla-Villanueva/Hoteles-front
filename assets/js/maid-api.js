@@ -331,7 +331,7 @@ async function markCleanFromQR() {
             showNotification(`⚠ No hay conexión. El cambio se guardó localmente y se sincronizará al volver a estar en línea.`, 'warning');
             // Actualiza UI localmente
             scannedRoomFromQR.estado = 'limpia';
-            await loadRooms();
+            renderRooms();
 
             // Registrar Background Sync si está disponible
             if ('serviceWorker' in navigator && 'SyncManager' in window) {
