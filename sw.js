@@ -207,61 +207,88 @@ self.addEventListener("fetch", event => {
     const request = event.request;
     const url = new URL(request.url);
 
+    /* ------------------------------------------
+     🚫 1. NO interceptar imágenes del backend
+     ------------------------------------------ */
+    if (url.pathname.includes("/api/reportes/imagen")) {
+        event.respondWith(fetch(request));
+        return;
+    }
 
-    // 👇 CACHEAR CDNs EXTERNOS (unpkg, cdnjs, jsdelivr, etc.)
-    if (url.origin !== location.origin && 
-        (url.hostname.includes('unpkg.com') || 
-         url.hostname.includes('cdn') || 
-         url.hostname.includes('cloudflare'))) {
-        
+    /* ------------------------------------------
+     🚫 2. NO interceptar imágenes de NGROK
+     ------------------------------------------ */
+    if (url.host.includes("ngrok-free.dev") && request.destination === "image") {
+        event.respondWith(fetch(request));
+        return;
+    }
+
+    /* ------------------------------------------
+     📦 3. Cacheo de CDNs externos
+     ------------------------------------------ */
+    if (
+        url.origin !== location.origin &&
+        (url.hostname.includes("unpkg.com") ||
+         url.hostname.includes("cdn") ||
+         url.hostname.includes("cloudflare"))
+    ) {
         event.respondWith(
             caches.match(request).then(cacheRes => {
                 if (cacheRes) {
                     console.log("📦 CDN desde cache:", url.href);
                     return cacheRes;
                 }
-                
-                return fetch(request).then(fetchRes => {
-                    // Solo cachear respuestas exitosas
-                    if (fetchRes && fetchRes.status === 200) {
-                        return caches.open(CACHE_NAME).then(cache => {
-                            cache.put(request, fetchRes.clone());
-                            console.log("✅ CDN guardado en cache:", url.href);
-                            return fetchRes;
-                        });
-                    }
-                    return fetchRes;
-                }).catch(() => {
-                    console.warn("❌ CDN no disponible offline:", url.href);
-                    return cacheRes; // Intenta devolver cache aunque sea null
-                });
+
+                return fetch(request)
+                    .then(fetchRes => {
+                        if (fetchRes && fetchRes.status === 200) {
+                            return caches.open(CACHE_NAME).then(cache => {
+                                cache.put(request, fetchRes.clone());
+                                console.log("✅ CDN guardado en cache:", url.href);
+                                return fetchRes;
+                            });
+                        }
+                        return fetchRes;
+                    })
+                    .catch(() => {
+                        console.warn("❌ CDN no disponible offline:", url.href);
+                        return cacheRes;
+                    });
             })
         );
         return;
     }
-    
-    if (url.pathname.includes("/api") || url.pathname.includes("/maid") || url.pathname.includes("/recepcion")) {
+
+    /* ------------------------------------------
+     🔧 4. Manejo de API (POST, PUT, GET, etc.)
+     ------------------------------------------ */
+    if (
+        url.pathname.includes("/api") ||
+        url.pathname.includes("/maid") ||
+        url.pathname.includes("/recepcion")
+    ) {
+        // Guardar peticiones offline
         if (["POST", "PUT", "DELETE"].includes(request.method)) {
-            const requestClone = request.clone(); 
+            const clone = request.clone();
             event.respondWith(
                 fetch(request).catch(() => {
-                    saveRequest(requestClone);
-                    return new Response(JSON.stringify({
-                        offline: true,
-                        message: "Se actualizará el estado cuando vuelvas a estar en línea."
-                    }), { headers: { "Content-Type": "application/json" } });
+                    saveRequest(clone);
+                    return new Response(
+                        JSON.stringify({
+                            offline: true,
+                            message: "Se actualizará el estado cuando vuelvas a estar en línea."
+                        }),
+                        { headers: { "Content-Type": "application/json" } }
+                    );
                 })
             );
             return;
         }
 
-
-
+        // GETs → cache first fallback
         event.respondWith(
-
             fetch(request)
                 .then(response => {
-
                     const clone = response.clone();
                     caches.open(API_CACHE).then(cache => cache.put(request, clone));
                     return response;
@@ -271,22 +298,30 @@ self.addEventListener("fetch", event => {
         return;
     }
 
-
+    /* ------------------------------------------
+     🌐 5. Peticiones normales (páginas / assets)
+     ------------------------------------------ */
     event.respondWith(
         caches.match(request).then(cacheRes => {
-            return cacheRes || fetch(request).then(fetchRes => {
-                return caches.open(CACHE_NAME).then(cache => {
-                    cache.put(request, fetchRes.clone());
-                    return fetchRes;
-                });
-            }).catch(() => {
-                if (request.mode === "navigate") {
-                    return caches.match("/pages/offline.html");
-                }
-            });
+            return (
+                cacheRes ||
+                fetch(request)
+                    .then(fetchRes => {
+                        return caches.open(CACHE_NAME).then(cache => {
+                            cache.put(request, fetchRes.clone());
+                            return fetchRes;
+                        });
+                    })
+                    .catch(() => {
+                        if (request.mode === "navigate") {
+                            return caches.match("/pages/offline.html");
+                        }
+                    })
+            );
         })
     );
 });
+
 
 
 
