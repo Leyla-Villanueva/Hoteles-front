@@ -429,7 +429,7 @@ function renderReportes() {
         let imagenUrl = '';
         if (reporte.imagenUrl) {
             if (reporte.imagenUrl.startsWith('/api')) {
-                imagenUrl = `http://localhost:8082${reporte.imagenUrl}`;
+                imagenUrl = `${API_URL}${reporte.imagenUrl}`;
             } else {
                 imagenUrl = `${API_URL}${reporte.imagenUrl}`;
             }
