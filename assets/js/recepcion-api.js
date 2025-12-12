@@ -426,7 +426,14 @@ function renderReportes() {
             minute: '2-digit'
         });
 
-        imagenUrl = `${API_URL}${reporte.imagenUrl}`;
+        imagenUrl = '';
+
+        const BASE = "https://trucklingly-misty-rebeca.ngrok-free.dev";
+
+let imagenUrl = reporte.imagenUrl.startsWith("/api")
+    ? BASE + reporte.imagenUrl
+    : BASE + "/api" + reporte.imagenUrl;
+
 
         console.log(imagenUrl);
 
