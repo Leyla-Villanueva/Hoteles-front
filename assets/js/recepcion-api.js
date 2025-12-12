@@ -426,14 +426,7 @@ function renderReportes() {
             minute: '2-digit'
         });
 
-        let imagenUrl = '';
-        if (reporte.imagenUrl) {
-            if (reporte.imagenUrl.startsWith('/api')) {
-                imagenUrl = `${API_URL}${reporte.imagenUrl}`;
-            } else {
-                imagenUrl = `${API_URL}${reporte.imagenUrl}`;
-            }
-        }
+        imagenUrl = `${API_URL}${reporte.imagenUrl}`;
 
         return `
             <div class="card shadow-sm mb-3">
